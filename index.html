@@ -78,7 +78,7 @@ header input{flex:1;min-width:110px;max-width:200px;margin-left:auto;padding:8px
 <button class="big" id="bSolo">🎤 Sing solo<small>Just you. Pick a song and go.</small></button>
 <button class="big alt" id="bGroup">📺 Host a party<small>Laptop is the stage. Phones reserve songs.</small></button>
 <div class="join"><input id="jc" maxlength="4" placeholder="CODE"><button id="bJoin">Join party</button></div>
-<p class="note" id="sn">Sessions clear automatically after 1 hour of no activity.</p><p class="note"><a href="#" id="bReset">Trouble loading? Reset app cache</a></p>
+<p class="note" id="sn">Sessions clear automatically after 1 hour of no activity.</p><p class="note"><a href="#" id="bReset">Trouble loading? Reset app cache</a> · v8</p>
 </div>
 
 <div id="app" hidden>
@@ -100,7 +100,9 @@ header input{flex:1;min-width:110px;max-width:200px;margin-left:auto;padding:8px
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script>
-const SUPABASE_URL='https://svofzorymcgtvjbxamqh.supabase.co',SUPABASE_KEY='sb_publishable_GX4Rmb51_0paNAwg7HztnQ_F2rEV_Mb',IDLE_MS=3600000;
+const SUPABASE_URL='https://svofzorymcgtvjbxamqh.supabase.co',SUPABASE_KEY='sb_publishable_GX4Rmb51_0paNAwg7HztnQ_F2rEV_Mb'; /* edit only these two quoted values */
+const YOUTUBE_API_KEY='YOUR_YOUTUBE_API_KEY'; /* optional */
+const IDLE_LIMIT=3600000,READY_DELAY=6000,APP_VERSION='v8';
 const RAW=`N|Die With A Smile|Lady Gaga & Bruno Mars|251
 N|APT.|ROSÉ & Bruno Mars|170
 N|Espresso|Sabrina Carpenter|175
@@ -338,7 +340,7 @@ async function newSession(auto){
   const mode=S.sess.mode,old=R.code;await leave();
   try{await sb.from('sessions').delete().eq('code',old);const c=await createSession(mode);await begin('host',c,mode);toast(auto?'Idle for an hour. Fresh session started 🌊':'New session started 🌊')}catch(e){toast('Could not start a new session')}
 }
-function idleCheck(){if(host()&&S.sess&&Date.now()-Date.parse(S.sess.last_active)>IDLE_MS)newSession(true)}
+function idleCheck(){if(host()&&S.sess&&Date.now()-Date.parse(S.sess.last_active)>IDLE_LIMIT)newSession(true)}
 async function load(){
   if(!R)return;
   if(dirty&&!(await flush())){offUI();return}
@@ -367,7 +369,7 @@ async function flush(){ /* push changes made while offline */
 }
 async function play(songId,singer){
   if(busy)return;busy=true;
-  S.now={code:R.code,song_id:+songId,singer,started_at:new Date(Date.now()+READY_MS).toISOString(),status:'singing',score:null,ended_at:null};render();
+  S.now={code:R.code,song_id:+songId,singer,started_at:new Date(Date.now()+READY_DELAY).toISOString(),status:'singing',score:null,ended_at:null};render();
   try{ok(await sb.from('playing').upsert(S.now));await touch();await load()}catch(e){dirty=true;offUI()}
   setTimeout(()=>busy=false,1000)
 }
@@ -557,14 +559,15 @@ $('bQR').onclick=()=>{const b=$('qbig');b.innerHTML='';$('qcode').textContent=R.
 $('qov').onclick=()=>$('qov').hidden=true;
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){$('qov').hidden=true;if(full){full=false;lastSig='';renderStage()}}});
 async function findVideo(s){ /* needs your own YouTube Data API key (see README) */
-  if(YT_KEY.includes('YOUR_')||VID[s.id]||YF.has(s.id))return;YF.add(s.id);
+  if(YOUTUBE_API_KEY.includes('YOUR_')||VID[s.id]||YF.has(s.id))return;YF.add(s.id);
   try{
-    const a=await(await jfetch('https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&videoEmbeddable=true&maxResults=1&q='+encodeURIComponent(s.title+' '+first(s.artist)+' karaoke')+'&key='+YT_KEY)).json();
+    const a=await(await jfetch('https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&videoEmbeddable=true&maxResults=1&q='+encodeURIComponent(s.title+' '+first(s.artist)+' karaoke')+'&key='+YOUTUBE_API_KEY)).json();
     const id=a.items&&a.items[0]&&a.items[0].id.videoId;
     if(id){VID[s.id]=id;ls.set('sonata-vid',VID);if(R&&S.now&&S.now.song_id===s.id){lastSig='';renderStage()}}
   }catch(e){}
 }
 window.addEventListener('error',e=>toast('Error: '+e.message));
+window.addEventListener('unhandledrejection',e=>{busy=false;toast('Error: '+((e.reason&&e.reason.message)||e.reason))});
 $('bReset').onclick=async e=>{e.preventDefault();try{(await navigator.serviceWorker.getRegistrations()).forEach(r=>r.unregister());(await caches.keys()).forEach(k=>caches.delete(k))}catch(x){}location.reload()};
 /* ---- boot ---- */
 (async()=>{
