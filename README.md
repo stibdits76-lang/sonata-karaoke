@@ -1,14 +1,5 @@
 # SONATA – karaoke with phone reservations (Supabase edition)
 
-## Setup (about 10 minutes)
-1. Create a free project at supabase.com.
-2. Open **SQL Editor**, paste `schema.sql`, click **Run**.
-   If `pg_cron` errors, enable it under **Database > Extensions**, then run again.
-3. Open **Project Settings > API**. Copy the **Project URL** and the **anon public** key.
-4. In `index.html`, replace `YOUR_SUPABASE_URL` and `YOUR_SUPABASE_ANON_KEY` near the top of the script.
-5. Deploy `index.html` as a static site: drag the folder into Netlify Drop, or use Cloudflare Pages or GitHub Pages.
-6. Open the site on the laptop, choose **Host a party**, and have phones scan the QR code.
-
 ## How it works
 - **Solo:** pick a song and sing. Favorites, Recent and Top lists are available.
 - **Group:** the laptop is the stage. Phones join with a 4-letter code or QR, reserve songs while someone sings, and send reactions.
