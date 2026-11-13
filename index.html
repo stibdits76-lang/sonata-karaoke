@@ -61,9 +61,10 @@ header input{flex:1;min-width:110px;max-width:200px;margin-left:auto;padding:8px
 .stage.full{background:#000;display:flex;flex-direction:column}
 .xfs{position:fixed;top:calc(12px + env(safe-area-inset-top,0px));right:12px;z-index:21;opacity:.55;font-size:20px;padding:8px 10px}
 .xfs:hover{opacity:1}
-#npLabel{align-self:center;font-size:clamp(13px,2vw,16px);letter-spacing:.25em;text-transform:uppercase;opacity:0;padding:6px 16px;border-radius:99px;background:rgba(255,255,255,.12);animation:npfade 3.5s ease forwards}
+.warn{display:block;color:#ff7a59;margin:2px 0 6px}
+#npLabel{align-self:center;font-size:clamp(13px,2vw,16px);letter-spacing:.15em;text-transform:uppercase;opacity:0;padding:7px 20px;border-radius:99px;color:#eafcff;background:linear-gradient(90deg,#0a5fa0,#3fb6e8 55%,#8fe0ff);box-shadow:0 4px 18px rgba(10,116,185,.5);animation:npfade 3.5s ease forwards}
 @keyframes npfade{0%{opacity:0;transform:translateY(-6px)}15%{opacity:1;transform:translateY(0)}80%{opacity:1}100%{opacity:0}}
-#nextLabel{align-self:center;margin-top:8px;font-size:clamp(12px,1.8vw,15px);padding:5px 14px;border-radius:99px;background:rgba(255,204,0,.18);border:1px solid rgba(255,204,0,.4);transition:opacity .4s}
+#nextLabel{align-self:center;margin-top:8px;font-size:clamp(12px,1.8vw,15px);padding:6px 18px;border-radius:99px;color:#eafcff;background:linear-gradient(90deg,#0a3a5c,#2aa7de 60%,#8fe0ff);border:1px solid rgba(143,224,255,.5);box-shadow:0 3px 14px rgba(10,116,185,.35);transition:opacity .4s}
 .full #lyr{flex:1;max-height:none;font-size:clamp(32px,5.6vw,72px);padding:2vh 2vw}
 .full .bar,.full #tm{opacity:.35;transform:scale(.7);transform-origin:top center}
 .tl{text-align:center;margin:10vh 0}
@@ -103,7 +104,7 @@ header input{flex:1;min-width:110px;max-width:200px;margin-left:auto;padding:8px
 <div class="panel" id="qp"><div id="joinbox" hidden><div>Join code</div><b id="code"></b><div id="qr"></div></div><h3>Up next 🐚</h3><div class="list" id="queue"></div></div>
 </div></div>
 <div id="qov" hidden><h2>Scan to join the party</h2><div id="qbig"></div><b id="qcode"></b><p>Tap anywhere to close</p></div>
-<div id="ed" hidden><div class="edbox"><h3 id="edT"></h3><textarea id="edL" placeholder="Paste lyrics you are allowed to use. Or timed lines: [01:23.50] words"></textarea><input type="file" id="edF" accept=".lrc,.txt"><input id="edV" placeholder="YouTube karaoke link (optional)"><input id="edA" placeholder="Minus-one audio URL (optional, e.g. mp3 link)"><input type="file" id="edAF" accept="audio/*"><small id="edAn" class="note"></small><div id="edMatches"></div><p class="note">Saved on this laptop only. Plain lyrics scroll evenly across the song. Lines starting with [mm:ss.xx] highlight in time.</p>
+<div id="ed" hidden><div class="edbox"><h3 id="edT"></h3><textarea id="edL" placeholder="Paste lyrics you are allowed to use. Or timed lines: [01:23.50] words"></textarea><input type="file" id="edF" accept=".lrc,.txt"><input id="edV" placeholder="YouTube karaoke link (optional)"><input id="edA" placeholder="Minus-one audio URL (optional, e.g. mp3 link)"><div class="row"><button class="sm" id="edTest">🔊 Test this audio</button></div><small id="edAw" class="warn"></small><input type="file" id="edAF" accept="audio/*"><small id="edAn" class="note"></small><div id="edMatches"></div><p class="note">Saved on this laptop only. Plain lyrics scroll evenly across the song. Lines starting with [mm:ss.xx] highlight in time.</p>
 <div class="row"><button class="add" id="edSave">Save</button><button class="sm" id="edX">Cancel</button><button class="sm" id="edClr">Clear</button></div></div></div>
 <audio id="kaudio" hidden preload="auto"></audio>
 <div class="toast" id="toast"></div>
@@ -450,10 +451,11 @@ function playAudio(song,live){
   const a=$('kaudio');if(!a)return;
   const src=song&&(MEDIA[song.id]||{}).audio;
   if(!src||!live){if(!a.paused)a.pause();a.removeAttribute('src');delete a.dataset.song;return}
-  if(a.dataset.song!==String(song.id)){
-    a.dataset.song=song.id;a.muted=false;a.volume=1;a.src=src;a.currentTime=0;a.onended=onAudioEnd;
-    a.onerror=()=>toast('Could not play the minus-one audio for this song (bad link or blocked content)');
-    a.play().catch(err=>toast('Audio blocked by the browser: '+err.message+'. Click anywhere once, then try again.'))
+  if(a.dataset.song!==String(song.id)&&a.dataset.trying!==String(song.id)){
+    a.dataset.trying=song.id;a.muted=false;a.volume=1;a.src=src;a.currentTime=0;a.onended=onAudioEnd;
+    a.onerror=()=>{toast('Could not play the minus-one audio for this song (bad link, or the host it\'s stored on blocks direct playback)');delete a.dataset.trying};
+    a.play().then(()=>{a.dataset.song=song.id;delete a.dataset.trying})
+      .catch(err=>{delete a.dataset.trying;toast('Audio blocked: '+err.message+'. Click anywhere on the page once, then it should play on the next song.')})
   }
 }
 
@@ -583,10 +585,29 @@ async function bulkLyrics(){
   b.disabled=false;b.textContent='⬇ Lyrics';toast('Lyrics saved for '+SONGS.filter(s=>lyrOf(s)).length+' songs')
 }
 /* ---- lyrics editor (saved on this device) ---- */
-function openEd(){const n=S.now,song=n&&byId(n.song_id);if(!song)return;edSong=song;const m=MEDIA[song.id]||{};$('edT').textContent='#'+sid(song)+' '+song.title;$('edL').value=m.lyrics||'';$('edV').value=m.video||'';$('edMatches').innerHTML='<button class="sm" id="edSearch">🔍 Find lyrics online</button>';$('edA').value=(m.audio&&!m.audio.startsWith('blob:'))?m.audio:'';$('edAn').textContent=m.audio?'Audio attached'+(m.audio.startsWith('blob:')?' (this browser tab only; re-add after refresh)':''):'';$('ed').hidden=false}
+function openEd(){const n=S.now,song=n&&byId(n.song_id);if(!song)return;edSong=song;const m=MEDIA[song.id]||{};$('edT').textContent='#'+sid(song)+' '+song.title;$('edL').value=m.lyrics||'';$('edV').value=m.video||'';$('edMatches').innerHTML='<button class="sm" id="edSearch">🔍 Find lyrics online</button>';$('edA').value=(m.audio&&!m.audio.startsWith('blob:'))?m.audio:'';$('edAw').textContent='';$('edAn').textContent=m.audio?'Audio attached'+(m.audio.startsWith('blob:')?' (this browser tab only; re-add after refresh)':''):'';$('ed').hidden=false}
 $('edSave').onclick=()=>{const f=$('edAF').files[0];const audio=f?URL.createObjectURL(f):$('edA').value.trim();MEDIA[edSong.id]={lyrics:$('edL').value,video:$('edV').value.trim(),audio};try{ls.set('sonata-media',MEDIA)}catch(e){toast('Saved for this session (audio file too large to keep after refresh)')}$('ed').hidden=true;lastSig='';delete document.getElementById('kaudio')?.dataset.song;renderStage();toast('Saved')};
 $('edX').onclick=()=>$('ed').hidden=true;
 $('edF').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{$('edL').value=r.result};r.readAsText(f)};
+function badLink(u){
+  if(!u)return'';
+  if(/drive\.google\.com\/file.*\/view|docs\.google\.com/.test(u))return 'A Google Drive "view" link won\'t play. Use File → Share → "Anyone with the link", then change the link to .../uc?export=download&id=FILE_ID — or just use the file picker above.';
+  if(/youtube\.com|youtu\.be/.test(u))return 'That\'s a YouTube link, not an audio file — paste it in the video field above instead.';
+  if(/dropbox\.com\/s\//.test(u)&&!/dl=1/.test(u))return 'Add "?dl=1" to the end of this Dropbox link so it plays directly.';
+  if(/spotify\.com|soundcloud\.com/.test(u))return 'Streaming links like this can\'t be played directly — use a direct audio file (.mp3 link) or the file picker.';
+  if(!/^https:/.test(u)&&/^http:/.test(u))return 'This is an http:// link on an https:// site, so the browser will block it. Use an https:// link instead.';
+  return ''
+}
+$('edA').oninput=()=>{$('edAw').textContent=badLink($('edA').value.trim())};
+$('edTest').onclick=async()=>{
+  const f=$('edAF').files[0],src=f?URL.createObjectURL(f):$('edA').value.trim();
+  if(!src)return toast('Add a link or choose a file first');
+  const w=badLink(src);if(w)$('edAw').textContent=w;
+  const t=new Audio();t.volume=1;
+  t.onerror=()=>toast('❌ This link did not load as audio.'+(w?' '+w:''));
+  try{await t.play();toast('✅ Playing — sounds good!');setTimeout(()=>t.pause(),4000)}
+  catch(err){toast('❌ Could not play: '+err.message)}
+};
 $('edMatches').innerHTML='<button class="sm" id="edSearch">🔍 Find lyrics online</button>';
 document.getElementById('edMatches').onclick=async e=>{
   if(e.target.id==='edSearch'){
