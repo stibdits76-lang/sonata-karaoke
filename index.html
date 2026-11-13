@@ -46,7 +46,7 @@ header input{flex:1;min-width:110px;max-width:200px;margin-left:auto;padding:8px
 .empty{color:var(--mut);text-align:center;padding:18px}
 #joinbox{text-align:center;margin-bottom:12px}#joinbox b{font-size:40px;letter-spacing:.25em;color:var(--sea)}#qr{display:flex;justify-content:center;margin-top:8px}
 .toast{position:fixed;left:50%;bottom:100px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:12px;opacity:0;transition:opacity .25s;pointer-events:none;max-width:90vw;z-index:9}.toast.on{opacity:1}
-.fl{position:fixed;bottom:80px;font-size:34px;pointer-events:none;animation:u 3s ease-out forwards}@keyframes u{to{transform:translateY(-70vh) rotate(20deg);opacity:0}}
+.fl{position:fixed;bottom:80px;font-size:34px;pointer-events:none;animation:u 3s ease-out forwards;z-index:25}@keyframes u{to{transform:translateY(-70vh) rotate(20deg);opacity:0}}
 .stage.full{position:fixed;inset:0;z-index:20;border-radius:0;overflow:auto;display:flex;flex-direction:column;padding:20px}
 #lyr{position:relative;max-height:34vh;overflow-y:auto;text-align:center;font-size:clamp(18px,2.4vw,28px);margin-top:10px;padding:6px;scrollbar-width:none}
 .full #lyr{flex:1;max-height:none;font-size:clamp(28px,5vw,60px)}
@@ -58,7 +58,17 @@ header input{flex:1;min-width:110px;max-width:200px;margin-left:auto;padding:8px
 .edbox{background:var(--bg);color:var(--ink);border-radius:18px;padding:16px;width:min(560px,100%);max-height:92vh;overflow:auto}
 .edbox textarea,.edbox input{width:100%;margin:6px 0;padding:10px;border-radius:12px;border:1px solid var(--line);background:var(--card)}.edbox textarea{height:34vh;resize:vertical}
 @property --p{syntax:'<percentage>';inherits:false;initial-value:0%}
-.stage.full{background:#000}
+.stage.full{background:#000;display:flex;flex-direction:column}
+.xfs{position:fixed;top:calc(12px + env(safe-area-inset-top,0px));right:12px;z-index:21;opacity:.55;font-size:20px;padding:8px 10px}
+.xfs:hover{opacity:1}
+.full{justify-content:center}
+.full #lyr{flex:1;max-height:none;font-size:clamp(30px,5.2vw,64px);display:flex;flex-direction:column;justify-content:center}
+.full .bar,.full #tm{opacity:.35;transform:scale(.7);transform-origin:top center}
+.tl{text-align:center;margin:10vh 0}
+.tl #tlx{display:block;font-size:clamp(16px,3vw,26px);letter-spacing:.15em;opacity:.8;text-transform:uppercase;animation:pop 1s ease infinite}
+.tl b{display:block;font-size:clamp(50px,11vw,120px);font-weight:800;line-height:1}
+@keyframes pop{0%,100%{opacity:.6;transform:scale(1)}50%{opacity:1;transform:scale(1.08)}}
+
 #lyr{background:#02121c;border-radius:14px;padding:10vh 10px;font-weight:600;line-height:1.25;max-height:42vh;-webkit-mask-image:linear-gradient(transparent,#000 15%,#000 85%,transparent);mask-image:linear-gradient(transparent,#000 15%,#000 85%,transparent)}
 .full #lyr{max-height:none}
 .ln{color:#17617f;opacity:1;padding:10px 0;transform:none}
@@ -66,10 +76,6 @@ header input{flex:1;min-width:110px;max-width:200px;margin-left:auto;padding:8px
 .ln.on{color:transparent;background:linear-gradient(90deg,#19c3ff var(--p),#17617f var(--p));-webkit-background-clip:text;background-clip:text;font-weight:600;transform:none;transition:--p .5s linear}
 .up{opacity:.85;margin:8px 0 0}
 .vid.big{max-height:none;height:62vh}.full .vid.big{flex:1;height:auto}
-.tl{display:flex;align-items:center;justify-content:center;gap:14px;margin:6px 0 10px}
-.tl i{width:clamp(34px,8vw,84px);aspect-ratio:1;border-radius:50%;background:rgba(0,0,0,.35);opacity:.35}
-.tl i.on{opacity:1}.tl i:nth-child(1).on{background:#ff3b30;box-shadow:0 0 34px #ff3b30}.tl i:nth-child(2).on{background:#ffcc00;box-shadow:0 0 34px #ffcc00}.tl i:nth-child(3).on{background:#34c759;box-shadow:0 0 34px #34c759}
-.tl b{font-size:clamp(40px,9vw,96px);min-width:1.2em;text-align:center}
 </style></head><body>
 <div class="waves" aria-hidden="true"><svg viewBox="0 0 1200 120" preserveAspectRatio="none"><path fill="var(--w1)" d="M0 60Q150 20 300 60T600 60T900 60T1200 60V120H0Z"/></svg><svg viewBox="0 0 1200 120" preserveAspectRatio="none"><path fill="var(--w2)" d="M0 70Q150 100 300 70T600 70T900 70T1200 70V120H0Z"/></svg></div>
 
@@ -94,7 +100,8 @@ header input{flex:1;min-width:110px;max-width:200px;margin-left:auto;padding:8px
 <div class="panel" id="qp"><div id="joinbox" hidden><div>Join code</div><b id="code"></b><div id="qr"></div></div><h3>Up next 🐚</h3><div class="list" id="queue"></div></div>
 </div></div>
 <div id="qov" hidden><h2>Scan to join the party</h2><div id="qbig"></div><b id="qcode"></b><p>Tap anywhere to close</p></div>
-<div id="ed" hidden><div class="edbox"><h3 id="edT"></h3><textarea id="edL" placeholder="Paste lyrics you are allowed to use. Or timed lines: [01:23.50] words"></textarea><input type="file" id="edF" accept=".lrc,.txt"><input id="edV" placeholder="YouTube karaoke link (optional)"><p class="note">Saved on this laptop only. Plain lyrics scroll evenly across the song. Lines starting with [mm:ss.xx] highlight in time.</p><div class="row"><button class="add" id="edSave">Save</button><button class="sm" id="edX">Cancel</button><button class="sm" id="edClr">Clear</button></div></div></div>
+<div id="ed" hidden><div class="edbox"><h3 id="edT"></h3><textarea id="edL" placeholder="Paste lyrics you are allowed to use. Or timed lines: [01:23.50] words"></textarea><input type="file" id="edF" accept=".lrc,.txt"><input id="edV" placeholder="YouTube karaoke link (optional)"><input id="edA" placeholder="Minus-one audio URL (optional, e.g. mp3 link)"><input type="file" id="edAF" accept="audio/*"><small id="edAn" class="note"></small><p class="note">Saved on this laptop only. Plain lyrics scroll evenly across the song. Lines starting with [mm:ss.xx] highlight in time.</p><audio id="kaudio" hidden></audio>
+<div class="row"><button class="add" id="edSave">Save</button><button class="sm" id="edX">Cancel</button><button class="sm" id="edClr">Clear</button></div></div></div>
 <div class="toast" id="toast"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
@@ -408,16 +415,18 @@ async function updateSongs(manual){
 function tick(){
   const n=S.now,song=n&&byId(n.song_id);
   if(n&&n.status==='singing'&&song){
-    const el=(Date.now()-Date.parse(n.started_at))/1000,D=dur(song),b=document.querySelector('.bar i'),t=$('tm'),tl=$('tl');
+    const ka=$('kaudio'),useAudio=ka&&ka.dataset.song===String(song.id)&&!ka.paused&&!ka.ended&&!isNaN(ka.duration);
+    const el=useAudio?ka.currentTime:(Date.now()-Date.parse(n.started_at))/1000,D=useAudio?(ka.duration||dur(song)):dur(song),b=document.querySelector('.bar i'),t=$('tm'),tl=$('tl');
     if(b)b.style.width=Math.max(0,Math.min(100,el/D*100))+'%';
     if(t)t.textContent=fmt(Math.max(0,Math.min(el,D)))+' / '+fmt(D);
-    if(tl){if(el<0){const r=-el;tl.hidden=false;[...tl.children].forEach((d,i)=>{if(i<3)d.classList.toggle('on',i===(r>4?0:r>2?1:2))});$('tln').textContent=Math.ceil(r)}else tl.hidden=true}
+    if(tl){if(el<0){tl.hidden=false;$('tln').textContent=Math.ceil(-el)}else tl.hidden=true}
     if(el>=0&&lastLive!==n.started_at){lastLive=n.started_at;lastSig='';renderStage();return}
+    if(!$('kaudio'))playAudio(song,el>=0);
     const lyr=$('lyr');
     if(lyr&&LY.length){let k=-1;LY.forEach((l,i)=>{if(l.t!==null&&l.t<=el)k=i});const kids=lyr.children;
       if(k!==lyAct){lyAct=k;[...kids].forEach((d,i)=>{d.classList.toggle('on',i===k);d.classList.toggle('done',i<k&&LY[i].x!=='')});const d=kids[k];if(d)lyr.scrollTo({top:d.offsetTop-lyr.clientHeight/2+d.clientHeight/2,behavior:'smooth'})}
       if(k>=0){const nx=LY.findIndex((l,i)=>i>k&&l.t!==null),end=nx<0?D:LY[nx].t;kids[k].style.setProperty('--p',Math.max(0,Math.min(100,(el-LY[k].t)/Math.max(.5,end-LY[k].t)*100))+'%')}}
-    if(host()&&el>=D)finish();
+    if(host()&&!useAudio&&el>=D)finish();
   }else if(host()&&grp()&&S.queue.length&&(!n||(n.status==='done'&&Date.now()-Date.parse(n.ended_at)>9000)))startNext();
 }
 
@@ -429,6 +438,15 @@ function parseLyr(t,sec){ /* plain text or LRC lines like [01:23.50] words */
   if(!timed){const n=L.filter(l=>l.x).length||1;let i=0;L.forEach(l=>{if(l.x)l.t=3+(i++/n)*Math.max(10,sec-10)})}
   return L
 }
+/* ---- minus-one audio ---- */
+function onAudioEnd(){if(host())finish()}
+function playAudio(song,live){
+  const a=$('kaudio');if(!a)return;
+  const src=song&&(MEDIA[song.id]||{}).audio;
+  if(!src||!live){if(!a.paused)a.pause();a.removeAttribute('src');return}
+  if(a.dataset.song!==String(song.id)){a.dataset.song=song.id;a.src=src;a.currentTime=0;a.onended=onAudioEnd;a.play().catch(()=>{})}
+}
+
 function lyrHTML(song,live){
   const m=MEDIA[song.id]||{},txt=lyrOf(song),v=ytId(m.video||song.video)||VID[song.id]||'';
   if(!v)findVideo(song);
@@ -448,14 +466,18 @@ function renderStage(){
   if(sig===lastSig)return;lastSig=sig;
   $('stage').classList.toggle('full',full&&h);
   const react=solo?'':'<div class="row react">'+['👏','🔥','💖','🎉','🐬'].map(e=>`<button class="btn" data-r="${e}">${e}</button>`).join('')+'</div>';
+  const exitBtn=h?'<button class="btn xfs" data-a="full">'+(full?'🗗':'⛶')+'</button>':'';
   let x;
-  if(n&&n.status==='singing'&&song)
-    x=`<div class="tl" id="tl" hidden><i></i><i></i><i></i><b id="tln"></b></div><small>NOW SINGING · #${sid(song)}</small><h2>${esc(song.title)}</h2><p>${esc(song.artist)}</p><p>🎤 <b>${esc(n.singer)}</b></p><div class="bar"><i></i></div><p id="tm"></p><div class="row">${h?`<button class="btn" data-a="full">${full?'🗗 Exit full screen':'⛶ Karaoke screen'}</button><button class="btn" data-a="view">👁 View</button><button class="btn" data-a="edit">✏️ Lyrics / video</button><button class="btn" data-a="fin">⏹ Finish & score</button>`+(solo?'':'<button class="btn" data-a="skip">⏭ Skip</button>'):''}<a class="btn" target="_blank" rel="noopener" href="https://www.youtube.com/results?search_query=${encodeURIComponent(song.title+' '+song.artist+' karaoke')}">▶ Find karaoke video ↗</a></div>${h?lyrHTML(song,live):''}${h&&S.queue[0]?`<p class="up">Up next: ${esc((byId(S.queue[0].song_id)||{}).title||'')} · ${esc(S.queue[0].singer)}</p>`:''}${react}`;
-  else if(n&&n.status==='done'&&song){
+  if(n&&n.status==='singing'&&song){
+    const head=full&&h?'':`<small>NOW SINGING · #${sid(song)}</small><h2>${esc(song.title)}</h2><p>${esc(song.artist)}</p><p>🎤 <b>${esc(n.singer)}</b></p>`;
+    const ctrl=full&&h?'':`<div class="row">${h?`<button class="btn" data-a="full">${full?'🗗 Exit full screen':'⛶ Karaoke screen'}</button><button class="btn" data-a="view">👁 View</button><button class="btn" data-a="edit">✏️ Lyrics / audio</button><button class="btn" data-a="fin">⏹ Finish & score</button>`+(solo?'':'<button class="btn" data-a="skip">⏭ Skip</button>'):''}<a class="btn" target="_blank" rel="noopener" href="https://www.youtube.com/results?search_query=${encodeURIComponent(song.title+' '+song.artist+' karaoke')}">▶ Find video ↗</a></div>`+(solo?'':react);
+    x=exitBtn+`<div class="tl" id="tl" hidden><span id="tlx">Get ready</span><b id="tln"></b></div>${head}<div class="bar"><i></i></div><p id="tm"></p>${ctrl}${h?lyrHTML(song,live):''}${h&&!full&&S.queue[0]?`<p class="up">Up next: ${esc((byId(S.queue[0].song_id)||{}).title||'')} · ${esc(S.queue[0].singer)}</p>`:''}`;
+  }else if(n&&n.status==='done'&&song){
     const v=VERD.find(v=>n.score>=v[0])[1];
-    x=`<small>${esc(n.singer)} sang “${esc(song.title)}”</small><div class="score">${n.score}</div><div class="verdict">${v}</div><div class="row"><button class="btn" data-again="${song.id}">🔁 Sing again</button>${h&&!solo&&S.queue.length?'<button class="btn" data-a="skip">⏭ Next singer</button>':''}</div>${react}`}
+    x=`<small>${esc(n.singer)} sang "${esc(song.title)}"</small><div class="score">${n.score}</div><div class="verdict">${v}</div><div class="row"><button class="btn" data-again="${song.id}">🔁 Sing again</button>${h&&!solo&&S.queue.length?'<button class="btn" data-a="skip">⏭ Next singer</button>':''}</div>${react}`}
   else x=`<small>${solo?'SOLO STAGE':'STAGE'}</small><h2>The sea is calm 🌊</h2><p>${solo?'Pick any song below and start singing.':S.queue.length?'Songs are lined up!':'Nobody’s singing. Reserve the first song!'}</p><div class="row">${h&&!solo&&S.queue.length?'<button class="btn" data-a="skip">▶ Start first song</button>':''}</div>${react}`;
-  $('stage').innerHTML=x
+  $('stage').innerHTML=x;
+  playAudio(song,live)
 }
 function renderSongs(){
   if(webRes){$('songs').innerHTML='<div class="item"><button class="sm" data-w="back">← Back to songbook</button></div>'+webRes.map((x,i)=>`<div class="item"><span class="sid">🌐</span><div class="meta"><b>${esc(x.trackName)}</b><span>${esc(x.artistName)} · ${fmt(x.duration||0)}${x.syncedLyrics?' · timed lyrics':''}</span></div><button class="add" data-wi="${i}">${canPlay()?'▶ Play':'＋ Reserve'}</button></div>`).join('');return}
@@ -549,8 +571,8 @@ async function bulkLyrics(){
   b.disabled=false;b.textContent='⬇ Lyrics';toast('Lyrics saved for '+SONGS.filter(s=>lyrOf(s)).length+' songs')
 }
 /* ---- lyrics editor (saved on this device) ---- */
-function openEd(){const n=S.now,song=n&&byId(n.song_id);if(!song)return;edSong=song;const m=MEDIA[song.id]||{};$('edT').textContent='#'+sid(song)+' '+song.title;$('edL').value=m.lyrics||'';$('edV').value=m.video||'';$('ed').hidden=false}
-$('edSave').onclick=()=>{MEDIA[edSong.id]={lyrics:$('edL').value,video:$('edV').value.trim()};ls.set('sonata-media',MEDIA);$('ed').hidden=true;lastSig='';renderStage();toast('Saved on this device')};
+function openEd(){const n=S.now,song=n&&byId(n.song_id);if(!song)return;edSong=song;const m=MEDIA[song.id]||{};$('edT').textContent='#'+sid(song)+' '+song.title;$('edL').value=m.lyrics||'';$('edV').value=m.video||'';$('edA').value=(m.audio&&!m.audio.startsWith('blob:'))?m.audio:'';$('edAn').textContent=m.audio?'Audio attached'+(m.audio.startsWith('blob:')?' (this browser tab only; re-add after refresh)':''):'';$('ed').hidden=false}
+$('edSave').onclick=()=>{const f=$('edAF').files[0];const audio=f?URL.createObjectURL(f):$('edA').value.trim();MEDIA[edSong.id]={lyrics:$('edL').value,video:$('edV').value.trim(),audio};try{ls.set('sonata-media',MEDIA)}catch(e){toast('Saved for this session (audio file too large to keep after refresh)')}$('ed').hidden=true;lastSig='';delete document.getElementById('kaudio')?.dataset.song;renderStage();toast('Saved')};
 $('edX').onclick=()=>$('ed').hidden=true;
 $('edF').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{$('edL').value=r.result};r.readAsText(f)};
 $('edClr').onclick=()=>{$('edL').value='';$('edV').value=''};
