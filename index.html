@@ -300,7 +300,7 @@ His word my hope secures;
 He will my shield and portion be,
 As long as life endures.`}; /* public-domain hymn (John Newton). Other lyrics are added by the host. */
 let MEDIA=ls.get('sonata-media',{}),LY=[],lyAct=-1,lastSig='',lastStart='',full=false,edSong=null;
-let LC=ls.get('sonata-lyr',{}),CUSTOM=ls.get('sonata-custom',[]),webRes=null,pend=new Set(),RES=new Set(),lastLive='';
+let LC=ls.get('sonata-lyr',{}),CUSTOM=ls.get('sonata-custom',[]),webRes=null,pend=new Set(),RES=new Set(),FAIL=new Set(),lastLive='';
 SONGS=[...SONGS,...CUSTOM.filter(c=>!SONGS.some(x=>x.id===c.id))]; /* cached list loads first, works offline */
 let sb,R=null,S={sess:null,queue:[],now:null,hist:[]},cat='All',busy=false,ch,timers=[],lt,fav=ls.get('sonata-fav',[]);
 const grp=()=>S.sess&&S.sess.mode==='group',host=()=>R&&R.role==='host',canPlay=()=>!grp()||(!(S.now&&S.now.status==='singing')&&!S.queue.length);
@@ -432,7 +432,7 @@ function lyrHTML(song,live){
   LY=parseLyr(txt,dur(song));lyAct=-1;
   const vid=v&&live?`<iframe class="vid${txt.trim()?'':' big'}" src="https://www.youtube.com/embed/${v}?autoplay=1&rel=0" allow="autoplay; encrypted-media; fullscreen" allowfullscreen></iframe>`:'';
   if(v&&!txt.trim()){LY=[];return vid}
-  if(!txt.trim()){LY=[];fetchLyrics(song);return '<div class="nol">'+(LC[song.id]===0?'No lyrics found online for this song.':'Fetching lyrics…')+'<div class="row" style="justify-content:center"><button class="btn" data-a="retry">🔄 Retry</button><button class="btn" data-a="edit">✏️ Add lyrics / video</button></div></div>'}
+  if(!txt.trim()){LY=[];fetchLyrics(song);return '<div class="nol">'+(LC[song.id]===0?'No lyrics found online for this song.':FAIL.has(song.id)?'Could not reach the lyrics service.':'Fetching lyrics…')+'<div class="row" style="justify-content:center"><button class="btn" data-a="retry">🔄 Retry</button><button class="btn" data-a="edit">✏️ Add lyrics / video</button></div></div>'}
   return vid+'<div id="lyr">'+LY.map(l=>`<div class="ln">${esc(l.x)||'&nbsp;'}</div>`).join('')+'</div>'
 }
 function renderStage(){
@@ -484,7 +484,7 @@ document.addEventListener('click',e=>{
   else if(t.dataset.a==='skip')startNext();
   else if(t.dataset.a==='full'){full=!full;lastSig='';renderStage()}
   else if(t.dataset.a==='edit')openEd();
-  else if(t.dataset.a==='retry'){const g=S.now&&byId(S.now.song_id);if(g){delete LC[g.id];ls.set('sonata-lyr',LC);lastSig='';renderStage()}}
+  else if(t.dataset.a==='retry'){const g=S.now&&byId(S.now.song_id);if(g){delete LC[g.id];FAIL.delete(g.id);ls.set('sonata-lyr',LC);lastSig='';renderStage()}}
   else if(t.dataset.w==='back'){webRes=null;renderSongs()}
   else if(t.dataset.wi!==undefined){const g=addCustom(webRes[+t.dataset.wi]);webRes=null;renderSongs();pick(g.id)}
   else if(t.dataset.c){cat=t.dataset.c;document.querySelectorAll('.chip').forEach(c=>c.classList.toggle('on',c.dataset.c===cat));renderSongs()}
@@ -507,7 +507,7 @@ $('bJoin').onclick=async()=>{
 };
 
 /* ---- online lyrics + song search (LRCLIB community database) ---- */
-const dur=s=>(LC[s.id]&&LC[s.id].d)||s.sec,sid=s=>s.id>=1e8?'🌐':s.id;
+const jfetch=u=>fetch(u,{signal:AbortSignal.timeout?AbortSignal.timeout(8000):undefined}),dur=s=>(LC[s.id]&&LC[s.id].d)||s.sec,sid=s=>s.id>=1e8?'🌐':s.id;
 const lyrOf=s=>{const m=MEDIA[s.id]||{};return m.lyrics||s.lyrics||(LC[s.id]&&LC[s.id].t)||PD[s.title]||''};
 const first=a=>a.split(/ ft\.| feat\.| & |, /i)[0];
 function addCustom(x){
@@ -517,22 +517,22 @@ function addCustom(x){
   return s
 }
 async function fetchLyrics(s){
-  if(!s||LC[s.id]!==undefined||pend.has(s.id)||lyrOf(s))return;pend.add(s.id);
+  if(!s||LC[s.id]!==undefined||pend.has(s.id)||FAIL.has(s.id)||lyrOf(s))return;pend.add(s.id);
   try{
-    const a=await(await fetch('https://lrclib.net/api/search?q='+encodeURIComponent(s.title+' '+(s.artist==='Traditional'?'':first(s.artist))))).json();
+    const a=await(await jfetch('https://lrclib.net/api/search?q='+encodeURIComponent(s.title+' '+(s.artist==='Traditional'?'':first(s.artist))))).json();
     const b=a.filter(x=>x.syncedLyrics||x.plainLyrics).sort((x,y)=>(!!y.syncedLyrics-!!x.syncedLyrics)||(Math.abs(x.duration-s.sec)-Math.abs(y.duration-s.sec)))[0];
     LC[s.id]=b?{t:b.syncedLyrics||b.plainLyrics,d:Math.round(b.duration)||0}:0;ls.set('sonata-lyr',LC);
-  }catch(e){}
+  }catch(e){FAIL.add(s.id)}
   pend.delete(s.id);if(R&&S.now&&S.now.song_id===s.id){lastSig='';renderStage()}
 }
 async function resolveSong(id){
   if(byId(id)||RES.has(id))return;RES.add(id);
-  try{const x=await(await fetch('https://lrclib.net/api/get/'+(id-1e8))).json();if(x&&x.trackName){addCustom(x);render()}}catch(e){}
+  try{const x=await(await jfetch('https://lrclib.net/api/get/'+(id-1e8))).json();if(x&&x.trackName){addCustom(x);render()}}catch(e){}
 }
 async function webSearch(q){
   toast('Searching online…');
   try{
-    const a=await(await fetch('https://lrclib.net/api/search?q='+encodeURIComponent(q))).json(),seen=new Set();
+    const a=await(await jfetch('https://lrclib.net/api/search?q='+encodeURIComponent(q))).json(),seen=new Set();
     webRes=a.filter(x=>{const k=(x.trackName+x.artistName).toLowerCase();return seen.has(k)?false:seen.add(k)}).slice(0,25);
     if(!webRes.length)toast('Nothing found online')
   }catch(e){webRes=null;toast('Online search needs a connection')}
