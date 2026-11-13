@@ -104,7 +104,7 @@ header input{flex:1;min-width:110px;max-width:200px;margin-left:auto;padding:8px
 <div class="panel" id="qp"><div id="joinbox" hidden><div>Join code</div><b id="code"></b><div id="qr"></div></div><h3>Up next 🐚</h3><div class="list" id="queue"></div></div>
 </div></div>
 <div id="qov" hidden><h2>Scan to join the party</h2><div id="qbig"></div><b id="qcode"></b><p>Tap anywhere to close</p></div>
-<div id="ed" hidden><div class="edbox"><h3 id="edT"></h3><textarea id="edL" placeholder="Paste lyrics you are allowed to use. Or timed lines: [01:23.50] words"></textarea><input type="file" id="edF" accept=".lrc,.txt"><input id="edV" placeholder="YouTube karaoke link (optional)"><input id="edA" placeholder="Minus-one audio URL (optional, e.g. mp3 link)"><div class="row"><button class="sm" id="edTest">🔊 Test this audio</button></div><small id="edAw" class="warn"></small><input type="file" id="edAF" accept="audio/*"><small id="edAn" class="note"></small><div id="edMatches"></div><p class="note">Saved on this laptop only. Plain lyrics scroll evenly across the song. Lines starting with [mm:ss.xx] highlight in time.</p>
+<div id="ed" hidden><div class="edbox"><h3 id="edT"></h3><textarea id="edL" placeholder="Paste lyrics you are allowed to use. Or timed lines: [01:23.50] words"></textarea><input type="file" id="edF" accept=".lrc,.txt"><input id="edV" placeholder="YouTube karaoke link (optional)"><input id="edA" placeholder="Minus-one/instrumental audio FILE link (.mp3) — NOT YouTube"><div class="row"><button class="sm" id="edTest">🔊 Test this audio</button></div><small id="edAw" class="warn"></small><input type="file" id="edAF" accept="audio/*"><small id="edAn" class="note"></small><div id="edMatches"></div><p class="note">Saved on this laptop only. Plain lyrics scroll evenly across the song. Lines starting with [mm:ss.xx] highlight in time.</p>
 <div class="row"><button class="add" id="edSave">Save</button><button class="sm" id="edX">Cancel</button><button class="sm" id="edClr">Clear</button></div></div></div>
 <audio id="kaudio" hidden preload="auto"></audio>
 <div class="toast" id="toast"></div>
@@ -381,7 +381,8 @@ async function flush(){ /* push changes made while offline */
 }
 async function play(songId,singer){
   if(busy)return;busy=true;
-  S.now={code:R.code,song_id:+songId,singer,started_at:new Date(Date.now()+READY_DELAY).toISOString(),status:'singing',score:null,ended_at:null};render();
+  const _song=byId(songId);if(_song)fetchLyrics(_song);const _delay=(_song?introDelay(_song):READY_DELAY/1000)*1000;
+  S.now={code:R.code,song_id:+songId,singer,started_at:new Date(Date.now()+_delay).toISOString(),status:'singing',score:null,ended_at:null};render();
   try{ok(await sb.from('playing').upsert(S.now));await touch();await load()}catch(e){dirty=true;offUI()}
   setTimeout(()=>busy=false,1000)
 }
@@ -443,7 +444,13 @@ function parseLyr(t,sec){ /* plain text or LRC lines like [01:23.50] words */
   const L=[];let timed=false;
   t.replace(/\r/g,'').split('\n').forEach(r=>{if(/^\[[a-z]{2,}:/i.test(r.trim()))return;const m=r.match(/^\[(\d+):(\d+(?:\.\d+)?)\]\s*(.*)$/);if(m){timed=true;L.push({t:+m[1]*60+ +m[2],x:m[3]})}else L.push({t:null,x:r.trim()})});
   if(!timed){const n=L.filter(l=>l.x).length||1;let i=0;L.forEach(l=>{if(l.x)l.t=3+(i++/n)*Math.max(10,sec-10)})}
-  return L
+  L.timed=timed;return L
+}
+function introDelay(song){ /* how long to show "Get ready" — until the first real word, when we know it */
+  const txt=lyrOf(song);if(!txt)return READY_DELAY/1000;
+  const L=parseLyr(txt,dur(song));if(!L.timed)return READY_DELAY/1000; /* plain lyrics have made-up timing, not a real intro length */
+  const first=L.find(l=>l.x);
+  return first&&first.t!=null?Math.max(3,Math.min(first.t,25)):READY_DELAY/1000
 }
 /* ---- minus-one audio ---- */
 function onAudioEnd(){if(host())finish()}
@@ -603,8 +610,9 @@ $('edTest').onclick=async()=>{
   const f=$('edAF').files[0],src=f?URL.createObjectURL(f):$('edA').value.trim();
   if(!src)return toast('Add a link or choose a file first');
   const w=badLink(src);if(w)$('edAw').textContent=w;
-  const t=new Audio();t.volume=1;
-  t.onerror=()=>toast('❌ This link did not load as audio.'+(w?' '+w:''));
+  if(w)return; // a YouTube/Drive/etc link was caught above — nothing to test, fix the link first
+  const t=new Audio(src);t.volume=1;
+  t.onerror=()=>toast('❌ This link did not load as audio. It may not be a direct, playable audio file.');
   try{await t.play();toast('✅ Playing — sounds good!');setTimeout(()=>t.pause(),4000)}
   catch(err){toast('❌ Could not play: '+err.message)}
 };
