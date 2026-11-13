@@ -47,9 +47,9 @@ header input{flex:1;min-width:110px;max-width:200px;margin-left:auto;padding:8px
 #joinbox{text-align:center;margin-bottom:12px}#joinbox b{font-size:40px;letter-spacing:.25em;color:var(--sea)}#qr{display:flex;justify-content:center;margin-top:8px}
 .toast{position:fixed;left:50%;bottom:100px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:12px;opacity:0;transition:opacity .25s;pointer-events:none;max-width:90vw;z-index:9}.toast.on{opacity:1}
 .fl{position:fixed;bottom:80px;font-size:34px;pointer-events:none;animation:u 3s ease-out forwards;z-index:25}@keyframes u{to{transform:translateY(-70vh) rotate(20deg);opacity:0}}
-.stage.full{position:fixed;inset:0;z-index:20;border-radius:0;overflow:auto;display:flex;flex-direction:column;padding:20px}
+.stage.full{position:fixed;inset:0;z-index:20;border-radius:0;overflow:auto;display:flex;flex-direction:column;padding:1.5vh 3vw}
 #lyr{position:relative;max-height:34vh;overflow-y:auto;text-align:center;font-size:clamp(18px,2.4vw,28px);margin-top:10px;padding:6px;scrollbar-width:none}
-.full #lyr{flex:1;max-height:none;font-size:clamp(28px,5vw,60px)}
+
 .ln{opacity:.5;padding:4px 0;transition:all .3s}.ln.on{opacity:1;font-weight:800;transform:scale(1.05)}.nol{opacity:.85;font-size:15px;padding:14px}
 .vid{width:100%;aspect-ratio:16/9;max-height:42vh;border:0;border-radius:12px;margin-top:10px}.full .vid{max-height:50vh}
 #qov{position:fixed;inset:0;z-index:30;background:linear-gradient(135deg,#0a5fa0,#2aa7de);color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;cursor:pointer;text-align:center}
@@ -61,15 +61,17 @@ header input{flex:1;min-width:110px;max-width:200px;margin-left:auto;padding:8px
 .stage.full{background:#000;display:flex;flex-direction:column}
 .xfs{position:fixed;top:calc(12px + env(safe-area-inset-top,0px));right:12px;z-index:21;opacity:.55;font-size:20px;padding:8px 10px}
 .xfs:hover{opacity:1}
-.full{justify-content:center}
-.full #lyr{flex:1;max-height:none;font-size:clamp(30px,5.2vw,64px);display:flex;flex-direction:column;justify-content:center}
+#npLabel{align-self:center;font-size:clamp(13px,2vw,16px);letter-spacing:.25em;text-transform:uppercase;opacity:0;padding:6px 16px;border-radius:99px;background:rgba(255,255,255,.12);animation:npfade 3.5s ease forwards}
+@keyframes npfade{0%{opacity:0;transform:translateY(-6px)}15%{opacity:1;transform:translateY(0)}80%{opacity:1}100%{opacity:0}}
+#nextLabel{align-self:center;margin-top:8px;font-size:clamp(12px,1.8vw,15px);padding:5px 14px;border-radius:99px;background:rgba(255,204,0,.18);border:1px solid rgba(255,204,0,.4);transition:opacity .4s}
+.full #lyr{flex:1;max-height:none;font-size:clamp(32px,5.6vw,72px);padding:2vh 2vw}
 .full .bar,.full #tm{opacity:.35;transform:scale(.7);transform-origin:top center}
 .tl{text-align:center;margin:10vh 0}
 .tl #tlx{display:block;font-size:clamp(16px,3vw,26px);letter-spacing:.15em;opacity:.8;text-transform:uppercase;animation:pop 1s ease infinite}
 .tl b{display:block;font-size:clamp(50px,11vw,120px);font-weight:800;line-height:1}
 @keyframes pop{0%,100%{opacity:.6;transform:scale(1)}50%{opacity:1;transform:scale(1.08)}}
 
-#lyr{background:#02121c;border-radius:14px;padding:10vh 10px;font-weight:600;line-height:1.25;max-height:42vh;-webkit-mask-image:linear-gradient(transparent,#000 15%,#000 85%,transparent);mask-image:linear-gradient(transparent,#000 15%,#000 85%,transparent)}
+#lyr{background:#02121c;border-radius:14px;padding:5vh 10px;font-weight:600;line-height:1.3;max-height:42vh;-webkit-mask-image:linear-gradient(transparent,#000 6%,#000 94%,transparent);mask-image:linear-gradient(transparent,#000 6%,#000 94%,transparent)}
 .full #lyr{max-height:none}
 .ln{color:#17617f;opacity:1;padding:10px 0;transform:none}
 .ln.done{color:#19c3ff}
@@ -421,6 +423,8 @@ function tick(){
     if(t)t.textContent=fmt(Math.max(0,Math.min(el,D)))+' / '+fmt(D);
     if(tl){if(el<0){tl.hidden=false;$('tln').textContent=Math.ceil(-el)}else tl.hidden=true}
     if(el>=0&&lastLive!==n.started_at){lastLive=n.started_at;lastSig='';renderStage();return}
+    const nb=$('nextLabel');
+    if(nb){const nq=S.queue[0];if(nq&&D-el<=15&&D-el>-2){nb.hidden=false;const ns=byId(nq.song_id);nb.textContent='Next: '+(ns?ns.title:'')+' · '+nq.singer}else nb.hidden=true}
     if(!$('kaudio'))playAudio(song,el>=0);
     const lyr=$('lyr');
     if(lyr&&LY.length){let k=-1;LY.forEach((l,i)=>{if(l.t!==null&&l.t<=el)k=i});const kids=lyr.children;
@@ -443,7 +447,7 @@ function onAudioEnd(){if(host())finish()}
 function playAudio(song,live){
   const a=$('kaudio');if(!a)return;
   const src=song&&(MEDIA[song.id]||{}).audio;
-  if(!src||!live){if(!a.paused)a.pause();a.removeAttribute('src');return}
+  if(!src||!live){if(!a.paused)a.pause();a.removeAttribute('src');delete a.dataset.song;return}
   if(a.dataset.song!==String(song.id)){a.dataset.song=song.id;a.src=src;a.currentTime=0;a.onended=onAudioEnd;a.play().catch(()=>{})}
 }
 
@@ -471,7 +475,7 @@ function renderStage(){
   if(n&&n.status==='singing'&&song){
     const head=full&&h?'':`<small>NOW SINGING · #${sid(song)}</small><h2>${esc(song.title)}</h2><p>${esc(song.artist)}</p><p>🎤 <b>${esc(n.singer)}</b></p>`;
     const ctrl=full&&h?'':`<div class="row">${h?`<button class="btn" data-a="full">${full?'🗗 Exit full screen':'⛶ Karaoke screen'}</button><button class="btn" data-a="view">👁 View</button><button class="btn" data-a="edit">✏️ Lyrics / audio</button><button class="btn" data-a="fin">⏹ Finish & score</button>`+(solo?'':'<button class="btn" data-a="skip">⏭ Skip</button>'):''}<a class="btn" target="_blank" rel="noopener" href="https://www.youtube.com/results?search_query=${encodeURIComponent(song.title+' '+song.artist+' karaoke')}">▶ Find video ↗</a></div>`+(solo?'':react);
-    x=exitBtn+`<div class="tl" id="tl" hidden><span id="tlx">Get ready</span><b id="tln"></b></div>${head}<div class="bar"><i></i></div><p id="tm"></p>${ctrl}${h?lyrHTML(song,live):''}${h&&!full&&S.queue[0]?`<p class="up">Up next: ${esc((byId(S.queue[0].song_id)||{}).title||'')} · ${esc(S.queue[0].singer)}</p>`:''}`;
+    x=exitBtn+`<div class="tl" id="tl" hidden><span id="tlx">Get ready</span><b id="tln"></b></div>${live?'<div id="npLabel">Now Playing</div>':''}${head}<div class="bar"><i></i></div><p id="tm"></p>${live?'<div id="nextLabel" hidden></div>':''}${ctrl}${h?lyrHTML(song,live):''}${h&&!full&&S.queue[0]?`<p class="up">Up next: ${esc((byId(S.queue[0].song_id)||{}).title||'')} · ${esc(S.queue[0].singer)}</p>`:''}`;
   }else if(n&&n.status==='done'&&song){
     const v=VERD.find(v=>n.score>=v[0])[1];
     x=`<small>${esc(n.singer)} sang "${esc(song.title)}"</small><div class="score">${n.score}</div><div class="verdict">${v}</div><div class="row"><button class="btn" data-again="${song.id}">🔁 Sing again</button>${h&&!solo&&S.queue.length?'<button class="btn" data-a="skip">⏭ Next singer</button>':''}</div>${react}`}
@@ -499,7 +503,9 @@ function render(){renderStage();renderQueue();renderSongs();tick()}
 function setTab(t){$('app').dataset.tab=t;$('t1').classList.toggle('on',t==='songs');$('t2').classList.toggle('on',t==='queue')}
 
 /* ---- events ---- */
+function unlockAudio(){const a=$('kaudio');if(!a||a.dataset.unlocked)return;a.dataset.unlocked='1';a.muted=true;const p=a.play();if(p&&p.catch)p.catch(()=>{}).then(()=>{a.pause();a.muted=false})}
 document.addEventListener('click',e=>{
+  unlockAudio();
   const t=e.target.closest('button');if(!t||!R)return;
   if(t.dataset.s)pick(t.dataset.s);
   else if(t.dataset.again)pick(t.dataset.again);
