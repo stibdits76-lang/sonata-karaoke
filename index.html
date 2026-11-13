@@ -66,6 +66,10 @@ header input{flex:1;min-width:110px;max-width:200px;margin-left:auto;padding:8px
 .ln.on{color:transparent;background:linear-gradient(90deg,#19c3ff var(--p),#17617f var(--p));-webkit-background-clip:text;background-clip:text;font-weight:600;transform:none;transition:--p .5s linear}
 .up{opacity:.85;margin:8px 0 0}
 .vid.big{max-height:none;height:62vh}.full .vid.big{flex:1;height:auto}
+.tl{display:flex;align-items:center;justify-content:center;gap:14px;margin:6px 0 10px}
+.tl i{width:clamp(34px,8vw,84px);aspect-ratio:1;border-radius:50%;background:rgba(0,0,0,.35);opacity:.35}
+.tl i.on{opacity:1}.tl i:nth-child(1).on{background:#ff3b30;box-shadow:0 0 34px #ff3b30}.tl i:nth-child(2).on{background:#ffcc00;box-shadow:0 0 34px #ffcc00}.tl i:nth-child(3).on{background:#34c759;box-shadow:0 0 34px #34c759}
+.tl b{font-size:clamp(40px,9vw,96px);min-width:1.2em;text-align:center}
 </style></head><body>
 <div class="waves" aria-hidden="true"><svg viewBox="0 0 1200 120" preserveAspectRatio="none"><path fill="var(--w1)" d="M0 60Q150 20 300 60T600 60T900 60T1200 60V120H0Z"/></svg><svg viewBox="0 0 1200 120" preserveAspectRatio="none"><path fill="var(--w2)" d="M0 70Q150 100 300 70T600 70T900 70T1200 70V120H0Z"/></svg></div>
 
@@ -84,8 +88,8 @@ header input{flex:1;min-width:110px;max-width:200px;margin-left:auto;padding:8px
 <section class="stage" id="stage"></section>
 <div class="tabs"><button id="t1" class="on">🎵 Songs</button><button id="t2">📋 Queue <span id="qn"></span></button></div>
 <div class="cols">
-<div class="panel" id="sp"><h3 style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">Songbook <button class="sm" id="bUp">🔄 Update songs</button><small id="su" style="font-weight:400;color:var(--mut)"></small></h3>
-<div class="srch"><input id="q" placeholder="Search title, artist or ID"><input id="idq" inputmode="numeric" placeholder="ID #" style="max-width:90px"><button class="add" id="idgo">Go</button></div>
+<div class="panel" id="sp"><h3 style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">Songbook <button class="sm" id="bUp">🔄 Update songs</button><button class="sm" id="bDL">⬇ Lyrics</button><small id="su" style="font-weight:400;color:var(--mut)"></small></h3>
+<div class="srch"><input id="q" placeholder="Search title, artist or ID"><input id="idq" inputmode="numeric" placeholder="ID #" style="max-width:90px"><button class="add" id="idgo">Go</button><button class="sm" id="bWeb">🌐 Online</button></div>
 <div class="chips" id="chips"></div><div class="list" id="songs"></div></div>
 <div class="panel" id="qp"><div id="joinbox" hidden><div>Join code</div><b id="code"></b><div id="qr"></div></div><h3>Up next 🐚</h3><div class="list" id="queue"></div></div>
 </div></div>
@@ -96,7 +100,7 @@ header input{flex:1;min-width:110px;max-width:200px;margin-left:auto;padding:8px
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script>
-const SUPABASE_URL='https://svofzorymcgtvjbxamqh.supabase.co',SUPABASE_KEY='sb_publishable_GX4Rmb51_0paNAwg7HztnQ_F2rEV_Mb',IDLE_MS=3600000;
+const SUPABASE_URL='YOUR_SUPABASE_URL',SUPABASE_KEY='YOUR_SUPABASE_ANON_KEY',IDLE_MS=3600000,READY_MS=6000;
 const RAW=`N|Die With A Smile|Lady Gaga & Bruno Mars|251
 N|APT.|ROSÉ & Bruno Mars|170
 N|Espresso|Sabrina Carpenter|175
@@ -269,7 +273,7 @@ C|Smooth|Santana ft. Rob Thomas|258`;
 const BASE={N:10000,W:20000,O:30000,C:40000},CN={N:'New',W:'Worship',O:'OPM',C:'Classics'},cnt={};
 const BUNDLED=RAW.split('\n').map(l=>{const[c,t,a,s]=l.split('|');cnt[c]=(cnt[c]||0)+1;return{id:BASE[c]+cnt[c],cat:CN[c],title:t,artist:a,sec:+s}});let SONGS=BUNDLED;
 const byId=id=>SONGS.find(s=>s.id===+id);
-const CATS=[['All','All'],['New','🆕 New'],['Worship','🙏 Worship'],['OPM','OPM'],['Classics','Classics'],['Favs','⭐ Favorites'],['Recent','🔁 Recent'],['Top','🏆 Most played']];
+const CATS=[['All','All'],['New','🆕 New'],['Worship','🙏 Worship'],['OPM','OPM'],['Classics','Classics'],['Online','🌐 Added'],['Favs','⭐ Favorites'],['Recent','🔁 Recent'],['Top','🏆 Most played']];
 const VERD=[[85,'Tsunami of talent! Poseidon is crying 🔱'],[70,'Mermaids are asking for your autograph 🧜'],[50,'The crab liked it. Crabs are tough critics 🦀'],[0,'The dolphins filed a noise complaint 🐬']];
 const $=id=>document.getElementById(id);
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -295,7 +299,9 @@ The Lord has promised good to me,
 His word my hope secures;
 He will my shield and portion be,
 As long as life endures.`}; /* public-domain hymn (John Newton). Other lyrics are added by the host. */
-let MEDIA=ls.get('sonata-media',{}),LY=[],lyAct=-1,lastSig='',lastStart='',full=false,edSong=null; /* cached list loads first, works offline */
+let MEDIA=ls.get('sonata-media',{}),LY=[],lyAct=-1,lastSig='',lastStart='',full=false,edSong=null;
+let LC=ls.get('sonata-lyr',{}),CUSTOM=ls.get('sonata-custom',[]),webRes=null,pend=new Set(),RES=new Set(),lastLive='';
+SONGS=[...SONGS,...CUSTOM.filter(c=>!SONGS.some(x=>x.id===c.id))]; /* cached list loads first, works offline */
 let sb,R=null,S={sess:null,queue:[],now:null,hist:[]},cat='All',busy=false,ch,timers=[],lt,fav=ls.get('sonata-fav',[]);
 const grp=()=>S.sess&&S.sess.mode==='group',host=()=>R&&R.role==='host',canPlay=()=>!grp()||(!(S.now&&S.now.status==='singing')&&!S.queue.length);
 
@@ -312,7 +318,7 @@ async function begin(role,code,mode){
   R={role,code,mode};ls.set('sonata-sess',R);S={sess:{code,mode,last_active:iso()},queue:[],now:null,hist:[]};const sn=ls.get('sonata-snap',null);if(sn&&sn.code===code){S.queue=sn.q;S.now=sn.n;S.hist=sn.h}updateStamp();
   $('start').hidden=true;$('app').hidden=false;
   $('app').className=(role==='host'?'host ':'')+mode;$('pm').textContent=mode==='solo'?'🎤 Solo':role==='host'?'📺 Host':'📱 Singer';
-  $('pc').textContent='Room '+code;$('bNew').hidden=role!=='host';$('bQR').hidden=mode!=='group';lastSig='';full=false;
+  $('pc').textContent='Room '+code;$('bNew').hidden=role!=='host';$('bQR').hidden=mode!=='group';$('bDL').hidden=role!=='host';lastSig='';full=false;
   $('name').value=ls.get('sonata-name','')||(role==='host'?(mode==='solo'?'Me':'Host'):'');
   $('joinbox').hidden=!(mode==='group'&&role==='host');
   if(!$('joinbox').hidden){$('code').textContent=code;$('qr').innerHTML='';if(window.QRCode)new QRCode($('qr'),{text:location.origin+location.pathname+'?room='+code,width:150,height:150})}
@@ -321,7 +327,7 @@ async function begin(role,code,mode){
   ch=sb.channel('r-'+code,{config:{broadcast:{self:true}}})
     .on('broadcast',{event:'react'},m=>float(m.payload.e))
     .on('postgres_changes',{event:'*',schema:'public'},()=>{clearTimeout(lt);lt=setTimeout(load,250)}).subscribe();
-  timers=[setInterval(tick,500),setInterval(load,8000),setInterval(idleCheck,30000)];
+  timers=[setInterval(tick,250),setInterval(load,8000),setInterval(idleCheck,30000)];
   await load();
 }
 async function leave(msg){
@@ -342,6 +348,8 @@ async function load(){
     if(!s.data){const wasHost=host();await leave('Session ended after 1 hour idle.');return}
     S={sess:s.data,queue:q.data||[],now:p.data,hist:h.data||[]};ls.set('sonata-snap',{code:R.code,q:S.queue,n:S.now,h:S.hist});
     $('net').innerHTML='🟢 Live';render();
+    if(host()){S.queue.slice(0,5).forEach(q=>fetchLyrics(byId(q.song_id)));if(S.now)fetchLyrics(byId(S.now.song_id))}
+    [...S.queue.map(q=>q.song_id),S.now&&S.now.song_id,...S.hist.map(h=>h.song_id)].forEach(i=>i>=1e8&&resolveSong(i));
   }catch(e){$('net').innerHTML='🟠 Reconnecting…'}
 }
 
@@ -359,7 +367,7 @@ async function flush(){ /* push changes made while offline */
 }
 async function play(songId,singer){
   if(busy)return;busy=true;
-  S.now={code:R.code,song_id:+songId,singer,started_at:iso(),status:'singing',score:null,ended_at:null};render();
+  S.now={code:R.code,song_id:+songId,singer,started_at:new Date(Date.now()+READY_MS).toISOString(),status:'singing',score:null,ended_at:null};render();
   try{ok(await sb.from('playing').upsert(S.now));await touch();await load()}catch(e){dirty=true;offUI()}
   setTimeout(()=>busy=false,1000)
 }
@@ -398,14 +406,16 @@ async function updateSongs(manual){
 function tick(){
   const n=S.now,song=n&&byId(n.song_id);
   if(n&&n.status==='singing'&&song){
-    const el=(Date.now()-Date.parse(n.started_at))/1000,b=document.querySelector('.bar i'),t=$('tm');
-    if(b)b.style.width=Math.min(100,el/song.sec*100)+'%';if(t)t.textContent=fmt(Math.min(el,song.sec))+' / '+fmt(song.sec);
+    const el=(Date.now()-Date.parse(n.started_at))/1000,D=dur(song),b=document.querySelector('.bar i'),t=$('tm'),tl=$('tl');
+    if(b)b.style.width=Math.max(0,Math.min(100,el/D*100))+'%';
+    if(t)t.textContent=fmt(Math.max(0,Math.min(el,D)))+' / '+fmt(D);
+    if(tl){if(el<0){const r=-el;tl.hidden=false;[...tl.children].forEach((d,i)=>{if(i<3)d.classList.toggle('on',i===(r>4?0:r>2?1:2))});$('tln').textContent=Math.ceil(r)}else tl.hidden=true}
+    if(el>=0&&lastLive!==n.started_at){lastLive=n.started_at;lastSig='';renderStage();return}
     const lyr=$('lyr');
     if(lyr&&LY.length){let k=-1;LY.forEach((l,i)=>{if(l.t!==null&&l.t<=el)k=i});const kids=lyr.children;
       if(k!==lyAct){lyAct=k;[...kids].forEach((d,i)=>{d.classList.toggle('on',i===k);d.classList.toggle('done',i<k&&LY[i].x!=='')});const d=kids[k];if(d)lyr.scrollTo({top:d.offsetTop-lyr.clientHeight/2+d.clientHeight/2,behavior:'smooth'})}
-      if(k>=0){const nx=LY.findIndex((l,i)=>i>k&&l.t!==null),end=nx<0?song.sec:LY[nx].t;kids[k].style.setProperty('--p',Math.max(0,Math.min(100,(el-LY[k].t)/Math.max(.5,end-LY[k].t)*100))+'%')}}
-    
-if(host()&&el>=song.sec)finish();
+      if(k>=0){const nx=LY.findIndex((l,i)=>i>k&&l.t!==null),end=nx<0?D:LY[nx].t;kids[k].style.setProperty('--p',Math.max(0,Math.min(100,(el-LY[k].t)/Math.max(.5,end-LY[k].t)*100))+'%')}}
+    if(host()&&el>=D)finish();
   }else if(host()&&grp()&&S.queue.length&&(!n||(n.status==='done'&&Date.now()-Date.parse(n.ended_at)>9000)))startNext();
 }
 
@@ -413,28 +423,30 @@ if(host()&&el>=song.sec)finish();
 const ytId=v=>{v=v||'';const m=v.match(/(?:v=|youtu\.be\/|embed\/)([\w-]{11})/)||v.match(/^([\w-]{11})$/);return m?m[1]:''};
 function parseLyr(t,sec){ /* plain text or LRC lines like [01:23.50] words */
   const L=[];let timed=false;
-  t.split('\n').forEach(r=>{const m=r.match(/^\[(\d+):(\d+(?:\.\d+)?)\]\s*(.*)$/);if(m){timed=true;L.push({t:+m[1]*60+ +m[2],x:m[3]})}else L.push({t:null,x:r.trim()})});
+  t.split('\n').forEach(r=>{if(/^\[[a-z]{2,}:/i.test(r.trim()))return;const m=r.match(/^\[(\d+):(\d+(?:\.\d+)?)\]\s*(.*)$/);if(m){timed=true;L.push({t:+m[1]*60+ +m[2],x:m[3]})}else L.push({t:null,x:r.trim()})});
   if(!timed){const n=L.filter(l=>l.x).length||1;let i=0;L.forEach(l=>{if(l.x)l.t=3+(i++/n)*Math.max(10,sec-10)})}
   return L
 }
-function lyrHTML(song){
-  const m=MEDIA[song.id]||{},txt=m.lyrics||song.lyrics||PD[song.title]||'',v=ytId(m.video||song.video);
-  LY=parseLyr(txt,song.sec);lyAct=-1;
-  const vid=v?`<iframe class="vid${txt.trim()?'':' big'}" src="https://www.youtube.com/embed/${v}?autoplay=1&rel=0" allow="autoplay; encrypted-media; fullscreen" allowfullscreen></iframe>`:'';
-  if(!txt.trim()){LY=[];return vid||'<div class="nol">No lyrics saved for this song yet.<br>Add lyrics you are allowed to use (paste, or upload a .lrc or .txt file), or a YouTube karaoke link.<div class="row" style="justify-content:center"><button class="btn" data-a="edit">✏️ Add lyrics / video</button></div></div>'}
+function lyrHTML(song,live){
+  const m=MEDIA[song.id]||{},txt=lyrOf(song),v=ytId(m.video||song.video);
+  LY=parseLyr(txt,dur(song));lyAct=-1;
+  const vid=v&&live?`<iframe class="vid${txt.trim()?'':' big'}" src="https://www.youtube.com/embed/${v}?autoplay=1&rel=0" allow="autoplay; encrypted-media; fullscreen" allowfullscreen></iframe>`:'';
+  if(v&&!txt.trim()){LY=[];return vid}
+  if(!txt.trim()){LY=[];fetchLyrics(song);return '<div class="nol">'+(LC[song.id]===0?'No lyrics found online for this song.':'Fetching lyrics…')+'<div class="row" style="justify-content:center"><button class="btn" data-a="retry">🔄 Retry</button><button class="btn" data-a="edit">✏️ Add lyrics / video</button></div></div>'}
   return vid+'<div id="lyr">'+LY.map(l=>`<div class="ln">${esc(l.x)||'&nbsp;'}</div>`).join('')+'</div>'
 }
 function renderStage(){
   const n=S.now,song=n&&byId(n.song_id),h=host(),solo=!grp();
   if(!(n&&n.status==='singing'))full=false;
   if(h&&n&&n.status==='singing'&&n.started_at!==lastStart){lastStart=n.started_at;full=true}
-  const sig=JSON.stringify([n&&[n.status,n.song_id,n.started_at,n.score,n.singer],S.queue.length,S.queue[0]&&S.queue[0].id,h,solo,full]);
+  const live=!!(n&&n.started_at&&Date.parse(n.started_at)<=Date.now());
+  const sig=JSON.stringify([live,n&&[n.status,n.song_id,n.started_at,n.score,n.singer],S.queue.length,S.queue[0]&&S.queue[0].id,h,solo,full]);
   if(sig===lastSig)return;lastSig=sig;
   $('stage').classList.toggle('full',full&&h);
   const react=solo?'':'<div class="row react">'+['👏','🔥','💖','🎉','🐬'].map(e=>`<button class="btn" data-r="${e}">${e}</button>`).join('')+'</div>';
   let x;
   if(n&&n.status==='singing'&&song)
-    x=`<small>NOW SINGING · #${song.id}</small><h2>${esc(song.title)}</h2><p>${esc(song.artist)}</p><p>🎤 <b>${esc(n.singer)}</b></p><div class="bar"><i></i></div><p id="tm"></p><div class="row">${h?`<button class="btn" data-a="full">${full?'🗗 Exit full screen':'⛶ Karaoke screen'}</button><button class="btn" data-a="edit">✏️ Lyrics / video</button><button class="btn" data-a="fin">⏹ Finish & score</button>`+(solo?'':'<button class="btn" data-a="skip">⏭ Skip</button>'):''}<a class="btn" target="_blank" rel="noopener" href="https://www.youtube.com/results?search_query=${encodeURIComponent(song.title+' '+song.artist+' karaoke')}">▶ Find karaoke video ↗</a></div>${h?lyrHTML(song):''}${h&&S.queue[0]?`<p class="up">Up next: ${esc((byId(S.queue[0].song_id)||{}).title||'')} · ${esc(S.queue[0].singer)}</p>`:''}${react}`;
+    x=`<div class="tl" id="tl" hidden><i></i><i></i><i></i><b id="tln"></b></div><small>NOW SINGING · #${sid(song)}</small><h2>${esc(song.title)}</h2><p>${esc(song.artist)}</p><p>🎤 <b>${esc(n.singer)}</b></p><div class="bar"><i></i></div><p id="tm"></p><div class="row">${h?`<button class="btn" data-a="full">${full?'🗗 Exit full screen':'⛶ Karaoke screen'}</button><button class="btn" data-a="edit">✏️ Lyrics / video</button><button class="btn" data-a="fin">⏹ Finish & score</button>`+(solo?'':'<button class="btn" data-a="skip">⏭ Skip</button>'):''}<a class="btn" target="_blank" rel="noopener" href="https://www.youtube.com/results?search_query=${encodeURIComponent(song.title+' '+song.artist+' karaoke')}">▶ Find karaoke video ↗</a></div>${h?lyrHTML(song,live):''}${h&&S.queue[0]?`<p class="up">Up next: ${esc((byId(S.queue[0].song_id)||{}).title||'')} · ${esc(S.queue[0].singer)}</p>`:''}${react}`;
   else if(n&&n.status==='done'&&song){
     const v=VERD.find(v=>n.score>=v[0])[1];
     x=`<small>${esc(n.singer)} sang “${esc(song.title)}”</small><div class="score">${n.score}</div><div class="verdict">${v}</div><div class="row"><button class="btn" data-again="${song.id}">🔁 Sing again</button>${h&&!solo&&S.queue.length?'<button class="btn" data-a="skip">⏭ Next singer</button>':''}</div>${react}`}
@@ -442,6 +454,7 @@ function renderStage(){
   $('stage').innerHTML=x
 }
 function renderSongs(){
+  if(webRes){$('songs').innerHTML='<div class="item"><button class="sm" data-w="back">← Back to songbook</button></div>'+webRes.map((x,i)=>`<div class="item"><span class="sid">🌐</span><div class="meta"><b>${esc(x.trackName)}</b><span>${esc(x.artistName)} · ${fmt(x.duration||0)}${x.syncedLyrics?' · timed lyrics':''}</span></div><button class="add" data-wi="${i}">${canPlay()?'▶ Play':'＋ Reserve'}</button></div>`).join('');return}
   const q=$('q').value.trim().toLowerCase(),cn={};S.hist.forEach(r=>cn[r.song_id]=(cn[r.song_id]||0)+1);
   let l=SONGS;
   if(cat==='Favs')l=SONGS.filter(s=>fav.includes(s.id));
@@ -449,12 +462,12 @@ function renderSongs(){
   else if(cat==='Top')l=SONGS.filter(s=>cn[s.id]).sort((a,b)=>cn[b.id]-cn[a.id]);
   else if(cat!=='All')l=SONGS.filter(s=>s.cat===cat);
   if(q)l=l.filter(s=>(s.title+' '+s.artist+' '+s.id).toLowerCase().includes(q));
-  const e={Favs:'Tap ☆ on a song to add favorites.',Recent:'Songs sung in this session show up here.',Top:'Nothing sung yet. Be the first!'}[cat]||'No song found 🐟';
-  $('songs').innerHTML=l.length?l.map(s=>`<div class="item"><button class="st" data-f="${s.id}" aria-label="Favorite">${fav.includes(s.id)?'★':'☆'}</button><span class="sid">${s.id}</span><div class="meta"><b>${esc(s.title)}</b><span>${esc(s.artist)} · ${s.cat} · ${fmt(s.sec)}${cn[s.id]?' · sung ×'+cn[s.id]:''}</span></div><button class="add" data-s="${s.id}">${canPlay()?'▶ Play':'＋ Reserve'}</button></div>`).join(''):`<div class="empty">${e}</div>`
+  const e={Favs:'Tap ☆ on a song to add favorites.',Recent:'Songs sung in this session show up here.',Top:'Nothing sung yet. Be the first!'}[cat]||'No song found 🐟 Try 🌐 Online';
+  $('songs').innerHTML=l.length?l.map(s=>`<div class="item"><button class="st" data-f="${s.id}" aria-label="Favorite">${fav.includes(s.id)?'★':'☆'}</button><span class="sid">${sid(s)}</span><div class="meta"><b>${esc(s.title)}</b><span>${esc(s.artist)} · ${s.cat} · ${fmt(s.sec)}${cn[s.id]?' · sung ×'+cn[s.id]:''}</span></div><button class="add" data-s="${s.id}">${canPlay()?'▶ Play':'＋ Reserve'}</button></div>`).join(''):`<div class="empty">${e}</div>`
 }
 function renderQueue(){
   $('qn').textContent=S.queue.length?'('+S.queue.length+')':'';
-  $('queue').innerHTML=S.queue.length?S.queue.map((r,i)=>{const s=byId(r.song_id);return s?`<div class="item"><span class="sid">${i+1}</span><div class="meta"><b>${esc(s.title)}</b><span>#${s.id} · 🎤 ${esc(r.singer)}</span></div><button class="x" data-d="${r.id}" aria-label="Remove">✕</button></div>`:''}).join(''):'<div class="empty">Queue is empty. Reserve a song! 🎶</div>'
+  $('queue').innerHTML=S.queue.length?S.queue.map((r,i)=>{const s=byId(r.song_id);return s?`<div class="item"><span class="sid">${i+1}</span><div class="meta"><b>${esc(s.title)}</b><span>#${sid(s)} · 🎤 ${esc(r.singer)}</span></div><button class="x" data-d="${r.id}" aria-label="Remove">✕</button></div>`:''}).join(''):'<div class="empty">Queue is empty. Reserve a song! 🎶</div>'
 }
 function render(){renderStage();renderQueue();renderSongs();tick()}
 function setTab(t){$('app').dataset.tab=t;$('t1').classList.toggle('on',t==='songs');$('t2').classList.toggle('on',t==='queue')}
@@ -471,9 +484,14 @@ document.addEventListener('click',e=>{
   else if(t.dataset.a==='skip')startNext();
   else if(t.dataset.a==='full'){full=!full;lastSig='';renderStage()}
   else if(t.dataset.a==='edit')openEd();
+  else if(t.dataset.a==='retry'){const g=S.now&&byId(S.now.song_id);if(g){delete LC[g.id];ls.set('sonata-lyr',LC);lastSig='';renderStage()}}
+  else if(t.dataset.w==='back'){webRes=null;renderSongs()}
+  else if(t.dataset.wi!==undefined){const g=addCustom(webRes[+t.dataset.wi]);webRes=null;renderSongs();pick(g.id)}
   else if(t.dataset.c){cat=t.dataset.c;document.querySelectorAll('.chip').forEach(c=>c.classList.toggle('on',c.dataset.c===cat));renderSongs()}
 });
-$('q').oninput=()=>R&&renderSongs();
+$('q').oninput=()=>{webRes=null;R&&renderSongs()};
+$('bWeb').onclick=()=>{const q=$('q').value.trim();q.length<2?toast('Type a title or artist first'):webSearch(q)};
+$('bDL').onclick=bulkLyrics;
 $('t1').onclick=()=>setTab('songs');$('t2').onclick=()=>setTab('queue');
 $('bUp').onclick=()=>updateSongs(true);
 $('idgo').onclick=()=>{const v=$('idq').value.trim();if(v){pick(v);$('idq').value=''}};
@@ -488,8 +506,45 @@ $('bJoin').onclick=async()=>{
   begin('guest',c,'group')
 };
 
+/* ---- online lyrics + song search (LRCLIB community database) ---- */
+const dur=s=>(LC[s.id]&&LC[s.id].d)||s.sec,sid=s=>s.id>=1e8?'🌐':s.id;
+const lyrOf=s=>{const m=MEDIA[s.id]||{};return m.lyrics||s.lyrics||(LC[s.id]&&LC[s.id].t)||PD[s.title]||''};
+const first=a=>a.split(/ ft\.| feat\.| & |, /i)[0];
+function addCustom(x){
+  const id=1e8+x.id;let s=byId(id);
+  if(!s){s={id,cat:'Online',title:x.trackName,artist:x.artistName,sec:Math.round(x.duration)||240};CUSTOM.push(s);SONGS.push(s);ls.set('sonata-custom',CUSTOM)}
+  const t=x.syncedLyrics||x.plainLyrics;if(t&&!LC[id]){LC[id]={t,d:Math.round(x.duration)||0};ls.set('sonata-lyr',LC)}
+  return s
+}
+async function fetchLyrics(s){
+  if(!s||LC[s.id]!==undefined||pend.has(s.id)||lyrOf(s))return;pend.add(s.id);
+  try{
+    const a=await(await fetch('https://lrclib.net/api/search?q='+encodeURIComponent(s.title+' '+(s.artist==='Traditional'?'':first(s.artist))))).json();
+    const b=a.filter(x=>x.syncedLyrics||x.plainLyrics).sort((x,y)=>(!!y.syncedLyrics-!!x.syncedLyrics)||(Math.abs(x.duration-s.sec)-Math.abs(y.duration-s.sec)))[0];
+    LC[s.id]=b?{t:b.syncedLyrics||b.plainLyrics,d:Math.round(b.duration)||0}:0;ls.set('sonata-lyr',LC);
+  }catch(e){}
+  pend.delete(s.id);if(R&&S.now&&S.now.song_id===s.id){lastSig='';renderStage()}
+}
+async function resolveSong(id){
+  if(byId(id)||RES.has(id))return;RES.add(id);
+  try{const x=await(await fetch('https://lrclib.net/api/get/'+(id-1e8))).json();if(x&&x.trackName){addCustom(x);render()}}catch(e){}
+}
+async function webSearch(q){
+  toast('Searching online…');
+  try{
+    const a=await(await fetch('https://lrclib.net/api/search?q='+encodeURIComponent(q))).json(),seen=new Set();
+    webRes=a.filter(x=>{const k=(x.trackName+x.artistName).toLowerCase();return seen.has(k)?false:seen.add(k)}).slice(0,25);
+    if(!webRes.length)toast('Nothing found online')
+  }catch(e){webRes=null;toast('Online search needs a connection')}
+  renderSongs()
+}
+async function bulkLyrics(){
+  const todo=SONGS.filter(s=>LC[s.id]===undefined&&!lyrOf(s)),b=$('bDL');let n=0;b.disabled=true;
+  for(const s of todo){b.textContent='⬇ '+(++n)+'/'+todo.length;await fetchLyrics(s);await new Promise(r=>setTimeout(r,350))}
+  b.disabled=false;b.textContent='⬇ Lyrics';toast('Lyrics saved for '+SONGS.filter(s=>lyrOf(s)).length+' songs')
+}
 /* ---- lyrics editor (saved on this device) ---- */
-function openEd(){const n=S.now,song=n&&byId(n.song_id);if(!song)return;edSong=song;const m=MEDIA[song.id]||{};$('edT').textContent='#'+song.id+' '+song.title;$('edL').value=m.lyrics||'';$('edV').value=m.video||'';$('ed').hidden=false}
+function openEd(){const n=S.now,song=n&&byId(n.song_id);if(!song)return;edSong=song;const m=MEDIA[song.id]||{};$('edT').textContent='#'+sid(song)+' '+song.title;$('edL').value=m.lyrics||'';$('edV').value=m.video||'';$('ed').hidden=false}
 $('edSave').onclick=()=>{MEDIA[edSong.id]={lyrics:$('edL').value,video:$('edV').value.trim()};ls.set('sonata-media',MEDIA);$('ed').hidden=true;lastSig='';renderStage();toast('Saved on this device')};
 $('edX').onclick=()=>$('ed').hidden=true;
 $('edF').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{$('edL').value=r.result};r.readAsText(f)};

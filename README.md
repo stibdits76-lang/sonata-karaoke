@@ -1,5 +1,14 @@
 # SONATA – karaoke with phone reservations (Supabase edition)
 
+## Setup (about 10 minutes)
+1. Create a free project at supabase.com.
+2. Open **SQL Editor**, paste `schema.sql`, click **Run**.
+   If `pg_cron` errors, enable it under **Database > Extensions**, then run again.
+3. Open **Project Settings > API**. Copy the **Project URL** and the **anon public** key.
+4. In `index.html`, replace `YOUR_SUPABASE_URL` and `YOUR_SUPABASE_ANON_KEY` near the top of the script.
+5. Deploy `index.html` as a static site: drag the folder into Netlify Drop, or use Cloudflare Pages or GitHub Pages.
+6. Open the site on the laptop, choose **Host a party**, and have phones scan the QR code.
+
 ## How it works
 - **Solo:** pick a song and sing. Favorites, Recent and Top lists are available.
 - **Group:** the laptop is the stage. Phones join with a 4-letter code or QR, reserve songs while someone sings, and send reactions.
@@ -37,3 +46,12 @@ Later updates: `git add .`, `git commit -m "message"`, `git push`.
 
 ## Play vs Reserve
 When nothing is playing and the queue is empty, a song's button says **▶ Play** and starts it right away. While a song is playing or others are waiting, it says **＋ Reserve**.
+
+## Auto lyrics and online song search
+- When a song is reserved or played, the host fetches its lyrics from LRCLIB (a free community lyrics database) and saves them on the laptop. Timed lyrics highlight in time. **⬇ Lyrics** downloads lyrics for the whole songbook ahead of time.
+- **🌐 Online** searches the same database for any song and adds it to the songbook (tab **🌐 Added**). Phones can add songs too.
+- Coverage is not complete, and lyrics belong to their rights holders. For a business or public venue, use a licensed lyrics provider.
+- Press **🔄 Retry** if a song's lyrics weren't found, or paste your own with ✏️.
+
+## Get-ready lights
+Each song starts with a 6-second red, yellow, green countdown before the timer, lyrics and video begin.
