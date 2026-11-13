@@ -1,5 +1,14 @@
 # SONATA – karaoke with phone reservations (Supabase edition)
 
+## Setup (about 10 minutes)
+1. Create a free project at supabase.com.
+2. Open **SQL Editor**, paste `schema.sql`, click **Run**.
+   If `pg_cron` errors, enable it under **Database > Extensions**, then run again.
+3. Open **Project Settings > API**. Copy the **Project URL** and the **anon public** key.
+4. In `index.html`, replace `YOUR_SUPABASE_URL` and `YOUR_SUPABASE_ANON_KEY` near the top of the script.
+5. Deploy `index.html` as a static site: drag the folder into Netlify Drop, or use Cloudflare Pages or GitHub Pages.
+6. Open the site on the laptop, choose **Host a party**, and have phones scan the QR code.
+
 ## How it works
 - **Solo:** pick a song and sing. Favorites, Recent and Top lists are available.
 - **Group:** the laptop is the stage. Phones join with a 4-letter code or QR, reserve songs while someone sings, and send reactions.
@@ -19,3 +28,18 @@
 - If the connection drops, the host keeps singing, scoring and advancing the queue locally, then syncs when the signal returns.
   Phones need a connection to reserve songs.
 - Start a session while you have signal. Once started, it keeps going and can be resumed offline.
+
+## Lyrics and karaoke screen
+- Only the **host** sees lyrics. During a song the host stage shows a lyrics panel that highlights and scrolls with the song. **⛶ Karaoke screen** makes it full screen (Esc exits).
+- SONATA bundles lyrics only for public-domain songs (for example "Amazing Grace"). For other songs, press **✏️ Lyrics / video** and paste lyrics you have the right to use, plus an optional YouTube karaoke link that plays on the host screen.
+  Lyrics are saved on the host laptop. Plain text scrolls evenly across the song. For exact timing, use lines like `[01:23.50] words`.
+- Phones have **📱 Share QR**, a full-screen QR code others can scan to join.
+
+## Commit and push (VS Code terminal)
+    git init
+    git add .
+    git commit -m "SONATA: lyrics view, more songs, share QR"
+    git branch -M main
+    git remote add origin https://github.com/YOUR-USERNAME/sonata.git
+    git push -u origin main
+Later updates: `git add .`, `git commit -m "message"`, `git push`.

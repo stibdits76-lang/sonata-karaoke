@@ -47,6 +47,16 @@ header input{flex:1;min-width:110px;max-width:200px;margin-left:auto;padding:8px
 #joinbox{text-align:center;margin-bottom:12px}#joinbox b{font-size:40px;letter-spacing:.25em;color:var(--sea)}#qr{display:flex;justify-content:center;margin-top:8px}
 .toast{position:fixed;left:50%;bottom:100px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:12px;opacity:0;transition:opacity .25s;pointer-events:none;max-width:90vw;z-index:9}.toast.on{opacity:1}
 .fl{position:fixed;bottom:80px;font-size:34px;pointer-events:none;animation:u 3s ease-out forwards}@keyframes u{to{transform:translateY(-70vh) rotate(20deg);opacity:0}}
+.stage.full{position:fixed;inset:0;z-index:20;border-radius:0;overflow:auto;display:flex;flex-direction:column;padding:20px}
+#lyr{position:relative;max-height:34vh;overflow-y:auto;text-align:center;font-size:clamp(18px,2.4vw,28px);margin-top:10px;padding:6px;scrollbar-width:none}
+.full #lyr{flex:1;max-height:none;font-size:clamp(28px,5vw,60px)}
+.ln{opacity:.5;padding:4px 0;transition:all .3s}.ln.on{opacity:1;font-weight:800;transform:scale(1.05)}.nol{opacity:.85;font-size:15px;padding:14px}
+.vid{width:100%;aspect-ratio:16/9;max-height:42vh;border:0;border-radius:12px;margin-top:10px}.full .vid{max-height:50vh}
+#qov{position:fixed;inset:0;z-index:30;background:linear-gradient(135deg,#0a5fa0,#2aa7de);color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;cursor:pointer;text-align:center}
+#qbig{background:#fff;padding:16px;border-radius:18px}#qcode{font-size:56px;letter-spacing:.3em}
+#ed{position:fixed;inset:0;z-index:30;background:rgba(0,20,40,.6);display:flex;align-items:center;justify-content:center;padding:16px}
+.edbox{background:var(--bg);color:var(--ink);border-radius:18px;padding:16px;width:min(560px,100%);max-height:92vh;overflow:auto}
+.edbox textarea,.edbox input{width:100%;margin:6px 0;padding:10px;border-radius:12px;border:1px solid var(--line);background:var(--card)}.edbox textarea{height:34vh;resize:vertical}
 </style></head><body>
 <div class="waves" aria-hidden="true"><svg viewBox="0 0 1200 120" preserveAspectRatio="none"><path fill="var(--w1)" d="M0 60Q150 20 300 60T600 60T900 60T1200 60V120H0Z"/></svg><svg viewBox="0 0 1200 120" preserveAspectRatio="none"><path fill="var(--w2)" d="M0 70Q150 100 300 70T600 70T900 70T1200 70V120H0Z"/></svg></div>
 
@@ -60,7 +70,7 @@ header input{flex:1;min-width:110px;max-width:200px;margin-left:auto;padding:8px
 
 <div id="app" hidden>
 <header><h1 class="logo">SONATA</h1><span class="pill" id="pm"></span><span class="pill" id="pc"></span><span class="pill" id="net"></span>
-<button class="sm" id="bNew" hidden>🧹 New session</button><button class="sm" id="bExit">Exit</button>
+<button class="sm" id="bQR" hidden>📱 Share QR</button><button class="sm" id="bNew" hidden>🧹 New session</button><button class="sm" id="bExit">Exit</button>
 <input id="name" placeholder="Your name" maxlength="20"></header>
 <section class="stage" id="stage"></section>
 <div class="tabs"><button id="t1" class="on">🎵 Songs</button><button id="t2">📋 Queue <span id="qn"></span></button></div>
@@ -70,12 +80,14 @@ header input{flex:1;min-width:110px;max-width:200px;margin-left:auto;padding:8px
 <div class="chips" id="chips"></div><div class="list" id="songs"></div></div>
 <div class="panel" id="qp"><div id="joinbox" hidden><div>Join code</div><b id="code"></b><div id="qr"></div></div><h3>Up next 🐚</h3><div class="list" id="queue"></div></div>
 </div></div>
+<div id="qov" hidden><h2>Scan to join the party</h2><div id="qbig"></div><b id="qcode"></b><p>Tap anywhere to close</p></div>
+<div id="ed" hidden><div class="edbox"><h3 id="edT"></h3><textarea id="edL" placeholder="Paste lyrics you are allowed to use. Or timed lines: [01:23.50] words"></textarea><input id="edV" placeholder="YouTube karaoke link (optional)"><p class="note">Saved on this laptop only. Plain lyrics scroll evenly across the song. Lines starting with [mm:ss.xx] highlight in time.</p><div class="row"><button class="add" id="edSave">Save</button><button class="sm" id="edX">Cancel</button><button class="sm" id="edClr">Clear</button></div></div></div>
 <div class="toast" id="toast"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script>
-const SUPABASE_URL='https://svofzorymcgtvjbxamqh.supabase.co',SUPABASE_KEY='sb_publishable_GX4Rmb51_0paNAwg7HztnQ_F2rEV_Mb',IDLE_MS=3600000;
+const SUPABASE_URL='YOUR_SUPABASE_URL',SUPABASE_KEY='YOUR_SUPABASE_ANON_KEY',IDLE_MS=3600000;
 const RAW=`N|Die With A Smile|Lady Gaga & Bruno Mars|251
 N|APT.|ROSÉ & Bruno Mars|170
 N|Espresso|Sabrina Carpenter|175
@@ -124,7 +136,127 @@ C|Total Eclipse of the Heart|Bonnie Tyler|335
 C|Livin’ on a Prayer|Bon Jovi|250
 C|I Want It That Way|Backstreet Boys|215
 C|Perfect|Ed Sheeran|260
-C|Someone Like You|Adele|285`;
+C|Someone Like You|Adele|285
+N|Flowers|Miley Cyrus|200
+N|Anti-Hero|Taylor Swift|200
+N|Cruel Summer|Taylor Swift|178
+N|As It Was|Harry Styles|167
+N|Levitating|Dua Lipa|203
+N|Good Luck, Babe!|Chappell Roan|218
+N|Lose Control|Teddy Swims|210
+N|Stick Season|Noah Kahan|182
+N|Vampire|Olivia Rodrigo|219
+N|Good 4 U|Olivia Rodrigo|178
+N|Kill Bill|SZA|153
+N|Blinding Lights|The Weeknd|200
+N|Save Your Tears|The Weeknd|215
+N|Bad Guy|Billie Eilish|194
+N|Dynamite|BTS|199
+N|Butter|BTS|164
+N|Super Shy|NewJeans|155
+N|Hype Boy|NewJeans|179
+N|Pink Venom|BLACKPINK|186
+N|Shut Down|BLACKPINK|175
+N|Pantropiko|BINI|190
+N|Salamin, Salamin|BINI|190
+N|Gento|SB19|200
+N|Mapa|SB19|280
+N|Paraluman|Adie|250
+N|Palagi|TJ Monterde|250
+N|Sa Susunod Na Habang Buhay|Ben&Ben|270
+W|Great Are You Lord|All Sons & Daughters|290
+W|Cornerstone|Hillsong Worship|330
+W|This Is Amazing Grace|Phil Wickham|245
+W|Living Hope|Phil Wickham|300
+W|Raise a Hallelujah|Bethel Music|300
+W|No Longer Slaves|Bethel Music|300
+W|Good Good Father|Chris Tomlin|290
+W|Mighty to Save|Hillsong Worship|280
+W|Shout to the Lord|Hillsong Worship|250
+W|Here I Am to Worship|Tim Hughes|270
+W|Blessed Be Your Name|Matt Redman|300
+W|In Christ Alone|Keith & Kristyn Getty|290
+W|How Great Thou Art|Traditional|240
+W|Forever|Kari Jobe|290
+W|Firm Foundation (He Won’t)|Cody Carnes|280
+W|Praise|Elevation Worship|315
+O|Ikaw|Yeng Constantino|260
+O|Chinito|Yeng Constantino|240
+O|Harana|Parokya ni Edgar|270
+O|Pangarap Lang Kita|Parokya ni Edgar|240
+O|Buwan|Juan Karlos|235
+O|Ere|Juan Karlos|255
+O|Dilaw|Maki|260
+O|Migraine|Moonstar88|290
+O|Mundo|IV Of Spades|265
+O|Kathang Isip|Ben&Ben|290
+O|Leaves|Ben&Ben|285
+O|Binibini|Zack Tabudlo|215
+O|Give Me Your Forever|Zack Tabudlo|235
+O|Sa Ngalan ng Pag-ibig|December Avenue|270
+O|Hanggang Kailan|Orange & Lemons|265
+O|Pinoy Ako|Orange & Lemons|250
+O|Pasensya Ka Na|Silent Sanctuary|270
+O|Kisapmata|Rivermaya|270
+O|214|Rivermaya|270
+O|Ligaya|Eraserheads|255
+O|With a Smile|Eraserheads|240
+O|Awitin Mo at Isasayaw Ko|VST & Co.|270
+O|Tuwing Umuulan at Kapiling Ka|Basil Valdez|290
+O|Nandito Ako|Ogie Alcasid|240
+O|Panalangin|Apo Hiking Society|250
+O|Upuan|Gloc-9 ft. Jeazel|300
+C|Hotel California|Eagles|390
+C|Hey Jude|The Beatles|430
+C|Let It Be|The Beatles|230
+C|Imagine|John Lennon|185
+C|Wonderwall|Oasis|258
+C|Yellow|Coldplay|267
+C|Fix You|Coldplay|295
+C|Zombie|The Cranberries|306
+C|Creep|Radiohead|238
+C|Say You Won’t Let Go|James Arthur|211
+C|All of Me|John Legend|269
+C|Thinking Out Loud|Ed Sheeran|281
+C|Shape of You|Ed Sheeran|234
+C|Love Story|Taylor Swift|235
+C|Rolling in the Deep|Adele|228
+C|Hello|Adele|295
+C|Always Be My Baby|Mariah Carey|258
+C|Hero|Mariah Carey|259
+C|I Wanna Dance with Somebody|Whitney Houston|290
+C|Endless Love|Diana Ross & Lionel Richie|267
+C|Careless Whisper|George Michael|300
+C|Take On Me|a-ha|225
+C|Girls Just Want to Have Fun|Cyndi Lauper|238
+C|Sweet Child O’ Mine|Guns N’ Roses|356
+C|Wind of Change|Scorpions|312
+C|Nothing Else Matters|Metallica|388
+C|Africa|Toto|295
+C|Complicated|Avril Lavigne|244
+C|Mr. Brightside|The Killers|222
+C|Bad Romance|Lady Gaga|294
+C|Billie Jean|Michael Jackson|294
+C|Lady in Red|Chris de Burgh|256
+C|Truly Madly Deeply|Savage Garden|277
+C|My Way|Frank Sinatra|276
+C|Fly Me to the Moon|Frank Sinatra|148
+C|Can’t Help Falling in Love|Elvis Presley|180
+C|Unchained Melody|The Righteous Brothers|216
+C|Stand by Me|Ben E. King|180
+C|Grenade|Bruno Mars|222
+C|Uptown Funk|Mark Ronson ft. Bruno Mars|270
+C|Happy|Pharrell Williams|232
+C|Love Yourself|Justin Bieber|233
+C|Umbrella|Rihanna ft. Jay-Z|275
+C|Halo|Beyoncé|261
+C|I Will Survive|Gloria Gaynor|198
+C|Mamma Mia|ABBA|215
+C|Hips Don’t Lie|Shakira|218
+C|Despacito|Luis Fonsi & Daddy Yankee|229
+C|Y.M.C.A.|Village People|226
+C|Beautiful in White|Shane Filan|228
+C|Smooth|Santana ft. Rob Thomas|258`;
 const BASE={N:10000,W:20000,O:30000,C:40000},CN={N:'New',W:'Worship',O:'OPM',C:'Classics'},cnt={};
 const BUNDLED=RAW.split('\n').map(l=>{const[c,t,a,s]=l.split('|');cnt[c]=(cnt[c]||0)+1;return{id:BASE[c]+cnt[c],cat:CN[c],title:t,artist:a,sec:+s}});let SONGS=BUNDLED;
 const byId=id=>SONGS.find(s=>s.id===+id);
@@ -134,7 +266,27 @@ const $=id=>document.getElementById(id);
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const fmt=s=>Math.floor(s/60)+':'+String(Math.floor(s%60)).padStart(2,'0');
 const ls={get:(k,d)=>{try{return JSON.parse(localStorage.getItem(k))??d}catch(e){return d}},set:(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
-SONGS=ls.get('sonata-songs',null)||BUNDLED; /* cached list loads first, works offline */
+SONGS=ls.get('sonata-songs',null)||BUNDLED;
+const PD={'Amazing Grace':`Amazing grace! How sweet the sound
+That saved a wretch like me!
+I once was lost, but now am found;
+Was blind, but now I see.
+
+’Twas grace that taught my heart to fear,
+And grace my fears relieved;
+How precious did that grace appear
+The hour I first believed.
+
+Through many dangers, toils and snares,
+I have already come;
+’Tis grace hath brought me safe thus far,
+And grace will lead me home.
+
+The Lord has promised good to me,
+His word my hope secures;
+He will my shield and portion be,
+As long as life endures.`}; /* public-domain hymn (John Newton). Other lyrics are added by the host. */
+let MEDIA=ls.get('sonata-media',{}),LY=[],lyAct=-1,lastSig='',full=false,edSong=null; /* cached list loads first, works offline */
 let sb,R=null,S={sess:null,queue:[],now:null,hist:[]},cat='All',busy=false,ch,timers=[],lt,fav=ls.get('sonata-fav',[]);
 const grp=()=>S.sess&&S.sess.mode==='group',host=()=>R&&R.role==='host';
 
@@ -151,7 +303,7 @@ async function begin(role,code,mode){
   R={role,code,mode};ls.set('sonata-sess',R);S={sess:{code,mode,last_active:iso()},queue:[],now:null,hist:[]};const sn=ls.get('sonata-snap',null);if(sn&&sn.code===code){S.queue=sn.q;S.now=sn.n;S.hist=sn.h}updateStamp();
   $('start').hidden=true;$('app').hidden=false;
   $('app').className=(role==='host'?'host ':'')+mode;$('pm').textContent=mode==='solo'?'🎤 Solo':role==='host'?'📺 Host':'📱 Singer';
-  $('pc').textContent='Room '+code;$('bNew').hidden=role!=='host';
+  $('pc').textContent='Room '+code;$('bNew').hidden=role!=='host';$('bQR').hidden=mode!=='group';lastSig='';full=false;
   $('name').value=ls.get('sonata-name','')||(role==='host'?(mode==='solo'?'Me':'Host'):'');
   $('joinbox').hidden=!(mode==='group'&&role==='host');
   if(!$('joinbox').hidden){$('code').textContent=code;$('qr').innerHTML='';if(window.QRCode)new QRCode($('qr'),{text:location.origin+location.pathname+'?room='+code,width:150,height:150})}
@@ -239,17 +391,36 @@ function tick(){
   if(n&&n.status==='singing'&&song){
     const el=(Date.now()-Date.parse(n.started_at))/1000,b=document.querySelector('.bar i'),t=$('tm');
     if(b)b.style.width=Math.min(100,el/song.sec*100)+'%';if(t)t.textContent=fmt(Math.min(el,song.sec))+' / '+fmt(song.sec);
+    const lyr=$('lyr');
+    if(lyr&&LY.length){let k=-1;LY.forEach((l,i)=>{if(l.t!==null&&l.t<=el)k=i});if(k!==lyAct){lyAct=k;[...lyr.children].forEach((d,i)=>d.classList.toggle('on',i===k));const d=lyr.children[k];if(d)lyr.scrollTo({top:d.offsetTop-lyr.clientHeight/2+d.clientHeight/2,behavior:'smooth'})}}
     if(host()&&el>=song.sec)finish();
   }else if(host()&&grp()&&S.queue.length&&(!n||(n.status==='done'&&Date.now()-Date.parse(n.ended_at)>9000)))startNext();
 }
 
 /* ---- render ---- */
+const ytId=v=>{v=v||'';const m=v.match(/(?:v=|youtu\.be\/|embed\/)([\w-]{11})/)||v.match(/^([\w-]{11})$/);return m?m[1]:''};
+function parseLyr(t,sec){ /* plain text or LRC lines like [01:23.50] words */
+  const L=[];let timed=false;
+  t.split('\n').forEach(r=>{const m=r.match(/^\[(\d+):(\d+(?:\.\d+)?)\]\s*(.*)$/);if(m){timed=true;L.push({t:+m[1]*60+ +m[2],x:m[3]})}else L.push({t:null,x:r.trim()})});
+  if(!timed){const n=L.filter(l=>l.x).length||1;let i=0;L.forEach(l=>{if(l.x)l.t=3+(i++/n)*Math.max(10,sec-10)})}
+  return L
+}
+function lyrHTML(song){
+  const m=MEDIA[song.id]||{},txt=m.lyrics||PD[song.title]||'',v=ytId(m.video);
+  LY=parseLyr(txt,song.sec);lyAct=-1;
+  return (v?`<iframe class="vid" src="https://www.youtube.com/embed/${v}?autoplay=1&rel=0" allow="autoplay; encrypted-media; fullscreen" allowfullscreen></iframe>`:'')
+   +'<div id="lyr">'+(txt.trim()?LY.map(l=>`<div class="ln">${esc(l.x)||'&nbsp;'}</div>`).join(''):'<div class="nol">No lyrics saved for this song yet. Tap ✏️ to paste lyrics you are allowed to use, or add a karaoke video link.</div>')+'</div>'
+}
 function renderStage(){
   const n=S.now,song=n&&byId(n.song_id),h=host(),solo=!grp();
+  if(!(n&&n.status==='singing'))full=false;
+  const sig=JSON.stringify([n&&[n.status,n.song_id,n.started_at,n.score,n.singer],S.queue.length,h,solo,full]);
+  if(sig===lastSig)return;lastSig=sig;
+  $('stage').classList.toggle('full',full&&h);
   const react=solo?'':'<div class="row react">'+['👏','🔥','💖','🎉','🐬'].map(e=>`<button class="btn" data-r="${e}">${e}</button>`).join('')+'</div>';
   let x;
   if(n&&n.status==='singing'&&song)
-    x=`<small>NOW SINGING · #${song.id}</small><h2>${esc(song.title)}</h2><p>${esc(song.artist)}</p><p>🎤 <b>${esc(n.singer)}</b></p><div class="bar"><i></i></div><p id="tm"></p><div class="row"><a class="btn" target="_blank" rel="noopener" href="https://www.youtube.com/results?search_query=${encodeURIComponent(song.title+' '+song.artist+' karaoke')}">▶ Open karaoke video ↗</a>${h?'<button class="btn" data-a="fin">⏹ Finish & score</button>'+(solo?'':'<button class="btn" data-a="skip">⏭ Skip</button>'):''}</div>${react}`;
+    x=`<small>NOW SINGING · #${song.id}</small><h2>${esc(song.title)}</h2><p>${esc(song.artist)}</p><p>🎤 <b>${esc(n.singer)}</b></p><div class="bar"><i></i></div><p id="tm"></p><div class="row">${h?`<button class="btn" data-a="full">${full?'🗗 Exit full screen':'⛶ Karaoke screen'}</button><button class="btn" data-a="edit">✏️ Lyrics / video</button><button class="btn" data-a="fin">⏹ Finish & score</button>`+(solo?'':'<button class="btn" data-a="skip">⏭ Skip</button>'):''}<a class="btn" target="_blank" rel="noopener" href="https://www.youtube.com/results?search_query=${encodeURIComponent(song.title+' '+song.artist+' karaoke')}">▶ Find karaoke video ↗</a></div>${h?lyrHTML(song):''}${react}`;
   else if(n&&n.status==='done'&&song){
     const v=VERD.find(v=>n.score>=v[0])[1];
     x=`<small>${esc(n.singer)} sang “${esc(song.title)}”</small><div class="score">${n.score}</div><div class="verdict">${v}</div><div class="row"><button class="btn" data-again="${song.id}">🔁 Sing again</button>${h&&!solo&&S.queue.length?'<button class="btn" data-a="skip">⏭ Next singer</button>':''}</div>${react}`}
@@ -284,6 +455,8 @@ document.addEventListener('click',e=>{
   else if(t.dataset.r)ch&&ch.send({type:'broadcast',event:'react',payload:{e:t.dataset.r}});
   else if(t.dataset.a==='fin')finish();
   else if(t.dataset.a==='skip')startNext();
+  else if(t.dataset.a==='full'){full=!full;lastSig='';renderStage()}
+  else if(t.dataset.a==='edit')openEd();
   else if(t.dataset.c){cat=t.dataset.c;document.querySelectorAll('.chip').forEach(c=>c.classList.toggle('on',c.dataset.c===cat));renderSongs()}
 });
 $('q').oninput=()=>R&&renderSongs();
@@ -301,6 +474,15 @@ $('bJoin').onclick=async()=>{
   begin('guest',c,'group')
 };
 
+/* ---- lyrics editor (saved on this device) ---- */
+function openEd(){const n=S.now,song=n&&byId(n.song_id);if(!song)return;edSong=song;const m=MEDIA[song.id]||{};$('edT').textContent='#'+song.id+' '+song.title;$('edL').value=m.lyrics||'';$('edV').value=m.video||'';$('ed').hidden=false}
+$('edSave').onclick=()=>{MEDIA[edSong.id]={lyrics:$('edL').value,video:$('edV').value.trim()};ls.set('sonata-media',MEDIA);$('ed').hidden=true;lastSig='';renderStage();toast('Saved on this device')};
+$('edX').onclick=()=>$('ed').hidden=true;
+$('edClr').onclick=()=>{$('edL').value='';$('edV').value=''};
+/* ---- big QR for sharing ---- */
+$('bQR').onclick=()=>{const b=$('qbig');b.innerHTML='';$('qcode').textContent=R.code;const z=Math.floor(Math.min(innerWidth,innerHeight)*.65);if(window.QRCode)new QRCode(b,{text:location.origin+location.pathname+'?room='+R.code,width:z,height:z});$('qov').hidden=false};
+$('qov').onclick=()=>$('qov').hidden=true;
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){$('qov').hidden=true;if(full){full=false;lastSig='';renderStage()}}});
 /* ---- boot ---- */
 (async()=>{
   if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
