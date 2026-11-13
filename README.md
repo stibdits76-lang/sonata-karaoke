@@ -1,5 +1,14 @@
 # SONATA – karaoke with phone reservations (Supabase edition)
 
+## Setup (about 10 minutes)
+1. Create a free project at supabase.com.
+2. Open **SQL Editor**, paste `schema.sql`, click **Run**.
+   If `pg_cron` errors, enable it under **Database > Extensions**, then run again.
+3. Open **Project Settings > API**. Copy the **Project URL** and the **anon public** key.
+4. In `index.html`, replace `YOUR_SUPABASE_URL` and `YOUR_SUPABASE_ANON_KEY` near the top of the script.
+5. Deploy `index.html` as a static site: drag the folder into Netlify Drop, or use Cloudflare Pages or GitHub Pages.
+6. Open the site on the laptop, choose **Host a party**, and have phones scan the QR code.
+
 ## How it works
 - **Solo:** pick a song and sing. Favorites, Recent and Top lists are available.
 - **Group:** the laptop is the stage. Phones join with a 4-letter code or QR, reserve songs while someone sings, and send reactions.
@@ -46,3 +55,11 @@ When nothing is playing and the queue is empty, a song's button says **▶ Play*
 
 ## Get-ready lights
 Each song starts with a 6-second red, yellow, green countdown before the timer, lyrics and video begin.
+
+## Karaoke video on the host screen (YouTube)
+SONATA doesn't host music. With a free YouTube Data API key, the host finds an embeddable karaoke video for each song, remembers it, and plays it after the red-yellow-green lights.
+1. Go to console.cloud.google.com, create a project, and enable **YouTube Data API v3**.
+2. Create an **API key** and restrict it to your website address (HTTP referrers) and to the YouTube Data API.
+3. Put it in `index.html`: replace `YOUR_YOUTUBE_API_KEY` near the top of the script.
+Each new song search uses part of the free daily quota. Found videos are saved, so replays cost nothing.
+The **👁 View** button on the host screen cycles Video, Video + lyrics, and Lyrics only. Without a key, use ✏️ to paste a YouTube link per song.

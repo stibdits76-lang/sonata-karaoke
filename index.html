@@ -78,7 +78,7 @@ header input{flex:1;min-width:110px;max-width:200px;margin-left:auto;padding:8px
 <button class="big" id="bSolo">🎤 Sing solo<small>Just you. Pick a song and go.</small></button>
 <button class="big alt" id="bGroup">📺 Host a party<small>Laptop is the stage. Phones reserve songs.</small></button>
 <div class="join"><input id="jc" maxlength="4" placeholder="CODE"><button id="bJoin">Join party</button></div>
-<p class="note" id="sn">Sessions clear automatically after 1 hour of no activity.</p>
+<p class="note" id="sn">Sessions clear automatically after 1 hour of no activity.</p><p class="note"><a href="#" id="bReset">Trouble loading? Reset app cache</a></p>
 </div>
 
 <div id="app" hidden>
@@ -100,7 +100,7 @@ header input{flex:1;min-width:110px;max-width:200px;margin-left:auto;padding:8px
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script>
-const SUPABASE_URL='https://svofzorymcgtvjbxamqh.supabase.co',SUPABASE_KEY='sb_publishable_GX4Rmb51_0paNAwg7HztnQ_F2rEV_Mb',IDLE_MS=3600000;
+const SUPABASE_URL='YOUR_SUPABASE_URL',SUPABASE_KEY='YOUR_SUPABASE_ANON_KEY',IDLE_MS=3600000,READY_MS=6000,YT_KEY='YOUR_YOUTUBE_API_KEY';
 const RAW=`N|Die With A Smile|Lady Gaga & Bruno Mars|251
 N|APT.|ROSÉ & Bruno Mars|170
 N|Espresso|Sabrina Carpenter|175
@@ -300,7 +300,7 @@ His word my hope secures;
 He will my shield and portion be,
 As long as life endures.`}; /* public-domain hymn (John Newton). Other lyrics are added by the host. */
 let MEDIA=ls.get('sonata-media',{}),LY=[],lyAct=-1,lastSig='',lastStart='',full=false,edSong=null;
-let LC=ls.get('sonata-lyr',{}),CUSTOM=ls.get('sonata-custom',[]),webRes=null,pend=new Set(),RES=new Set(),FAIL=new Set(),lastLive='';
+let LC=ls.get('sonata-lyr',{}),CUSTOM=ls.get('sonata-custom',[]),webRes=null,pend=new Set(),RES=new Set(),FAIL=new Set(),lastLive='',VID=ls.get('sonata-vid',{}),vw='auto',YF=new Set();
 SONGS=[...SONGS,...CUSTOM.filter(c=>!SONGS.some(x=>x.id===c.id))]; /* cached list loads first, works offline */
 let sb,R=null,S={sess:null,queue:[],now:null,hist:[]},cat='All',busy=false,ch,timers=[],lt,fav=ls.get('sonata-fav',[]);
 const grp=()=>S.sess&&S.sess.mode==='group',host=()=>R&&R.role==='host',canPlay=()=>!grp()||(!(S.now&&S.now.status==='singing')&&!S.queue.length);
@@ -423,16 +423,18 @@ function tick(){
 const ytId=v=>{v=v||'';const m=v.match(/(?:v=|youtu\.be\/|embed\/)([\w-]{11})/)||v.match(/^([\w-]{11})$/);return m?m[1]:''};
 function parseLyr(t,sec){ /* plain text or LRC lines like [01:23.50] words */
   const L=[];let timed=false;
-  t.split('\n').forEach(r=>{if(/^\[[a-z]{2,}:/i.test(r.trim()))return;const m=r.match(/^\[(\d+):(\d+(?:\.\d+)?)\]\s*(.*)$/);if(m){timed=true;L.push({t:+m[1]*60+ +m[2],x:m[3]})}else L.push({t:null,x:r.trim()})});
+  t.replace(/\r/g,'').split('\n').forEach(r=>{if(/^\[[a-z]{2,}:/i.test(r.trim()))return;const m=r.match(/^\[(\d+):(\d+(?:\.\d+)?)\]\s*(.*)$/);if(m){timed=true;L.push({t:+m[1]*60+ +m[2],x:m[3]})}else L.push({t:null,x:r.trim()})});
   if(!timed){const n=L.filter(l=>l.x).length||1;let i=0;L.forEach(l=>{if(l.x)l.t=3+(i++/n)*Math.max(10,sec-10)})}
   return L
 }
 function lyrHTML(song,live){
-  const m=MEDIA[song.id]||{},txt=lyrOf(song),v=ytId(m.video||song.video);
-  LY=parseLyr(txt,dur(song));lyAct=-1;
-  const vid=v&&live?`<iframe class="vid${txt.trim()?'':' big'}" src="https://www.youtube.com/embed/${v}?autoplay=1&rel=0" allow="autoplay; encrypted-media; fullscreen" allowfullscreen></iframe>`:'';
-  if(v&&!txt.trim()){LY=[];return vid}
-  if(!txt.trim()){LY=[];fetchLyrics(song);return '<div class="nol">'+(LC[song.id]===0?'No lyrics found online for this song.':FAIL.has(song.id)?'Could not reach the lyrics service.':'Fetching lyrics…')+'<div class="row" style="justify-content:center"><button class="btn" data-a="retry">🔄 Retry</button><button class="btn" data-a="edit">✏️ Add lyrics / video</button></div></div>'}
+  const m=MEDIA[song.id]||{},txt=lyrOf(song),v=ytId(m.video||song.video)||VID[song.id]||'';
+  if(!v)findVideo(song);
+  const showV=v&&vw!=='lyrics',showL=!!txt.trim()&&(vw==='both'||vw==='lyrics'||!v);
+  LY=showL?parseLyr(txt,dur(song)):[];lyAct=-1;
+  const vid=showV&&live?`<iframe class="vid${showL?'':' big'}" src="https://www.youtube.com/embed/${v}?autoplay=1&rel=0" allow="autoplay; encrypted-media; fullscreen" allowfullscreen></iframe>`:'';
+  if(showV&&!showL)return vid;
+  if(!showL){fetchLyrics(song);return '<div class="nol">'+(LC[song.id]===0?'No lyrics found online for this song.':FAIL.has(song.id)?'Could not reach the lyrics service.':'Fetching lyrics…')+'<div class="row" style="justify-content:center"><button class="btn" data-a="retry">🔄 Retry</button><button class="btn" data-a="edit">✏️ Add lyrics / video</button></div></div>'}
   return vid+'<div id="lyr">'+LY.map(l=>`<div class="ln">${esc(l.x)||'&nbsp;'}</div>`).join('')+'</div>'
 }
 function renderStage(){
@@ -446,7 +448,7 @@ function renderStage(){
   const react=solo?'':'<div class="row react">'+['👏','🔥','💖','🎉','🐬'].map(e=>`<button class="btn" data-r="${e}">${e}</button>`).join('')+'</div>';
   let x;
   if(n&&n.status==='singing'&&song)
-    x=`<div class="tl" id="tl" hidden><i></i><i></i><i></i><b id="tln"></b></div><small>NOW SINGING · #${sid(song)}</small><h2>${esc(song.title)}</h2><p>${esc(song.artist)}</p><p>🎤 <b>${esc(n.singer)}</b></p><div class="bar"><i></i></div><p id="tm"></p><div class="row">${h?`<button class="btn" data-a="full">${full?'🗗 Exit full screen':'⛶ Karaoke screen'}</button><button class="btn" data-a="edit">✏️ Lyrics / video</button><button class="btn" data-a="fin">⏹ Finish & score</button>`+(solo?'':'<button class="btn" data-a="skip">⏭ Skip</button>'):''}<a class="btn" target="_blank" rel="noopener" href="https://www.youtube.com/results?search_query=${encodeURIComponent(song.title+' '+song.artist+' karaoke')}">▶ Find karaoke video ↗</a></div>${h?lyrHTML(song,live):''}${h&&S.queue[0]?`<p class="up">Up next: ${esc((byId(S.queue[0].song_id)||{}).title||'')} · ${esc(S.queue[0].singer)}</p>`:''}${react}`;
+    x=`<div class="tl" id="tl" hidden><i></i><i></i><i></i><b id="tln"></b></div><small>NOW SINGING · #${sid(song)}</small><h2>${esc(song.title)}</h2><p>${esc(song.artist)}</p><p>🎤 <b>${esc(n.singer)}</b></p><div class="bar"><i></i></div><p id="tm"></p><div class="row">${h?`<button class="btn" data-a="full">${full?'🗗 Exit full screen':'⛶ Karaoke screen'}</button><button class="btn" data-a="view">👁 View</button><button class="btn" data-a="edit">✏️ Lyrics / video</button><button class="btn" data-a="fin">⏹ Finish & score</button>`+(solo?'':'<button class="btn" data-a="skip">⏭ Skip</button>'):''}<a class="btn" target="_blank" rel="noopener" href="https://www.youtube.com/results?search_query=${encodeURIComponent(song.title+' '+song.artist+' karaoke')}">▶ Find karaoke video ↗</a></div>${h?lyrHTML(song,live):''}${h&&S.queue[0]?`<p class="up">Up next: ${esc((byId(S.queue[0].song_id)||{}).title||'')} · ${esc(S.queue[0].singer)}</p>`:''}${react}`;
   else if(n&&n.status==='done'&&song){
     const v=VERD.find(v=>n.score>=v[0])[1];
     x=`<small>${esc(n.singer)} sang “${esc(song.title)}”</small><div class="score">${n.score}</div><div class="verdict">${v}</div><div class="row"><button class="btn" data-again="${song.id}">🔁 Sing again</button>${h&&!solo&&S.queue.length?'<button class="btn" data-a="skip">⏭ Next singer</button>':''}</div>${react}`}
@@ -484,6 +486,7 @@ document.addEventListener('click',e=>{
   else if(t.dataset.a==='skip')startNext();
   else if(t.dataset.a==='full'){full=!full;lastSig='';renderStage()}
   else if(t.dataset.a==='edit')openEd();
+  else if(t.dataset.a==='view'){vw=vw==='auto'?'both':vw==='both'?'lyrics':'auto';lastSig='';renderStage();toast('View: '+{auto:'Video (or lyrics)',both:'Video + lyrics',lyrics:'Lyrics only'}[vw])}
   else if(t.dataset.a==='retry'){const g=S.now&&byId(S.now.song_id);if(g){delete LC[g.id];FAIL.delete(g.id);ls.set('sonata-lyr',LC);lastSig='';renderStage()}}
   else if(t.dataset.w==='back'){webRes=null;renderSongs()}
   else if(t.dataset.wi!==undefined){const g=addCustom(webRes[+t.dataset.wi]);webRes=null;renderSongs();pick(g.id)}
@@ -553,6 +556,16 @@ $('edClr').onclick=()=>{$('edL').value='';$('edV').value=''};
 $('bQR').onclick=()=>{const b=$('qbig');b.innerHTML='';$('qcode').textContent=R.code;const z=Math.floor(Math.min(innerWidth,innerHeight)*.65);if(window.QRCode)new QRCode(b,{text:location.origin+location.pathname+'?room='+R.code,width:z,height:z});$('qov').hidden=false};
 $('qov').onclick=()=>$('qov').hidden=true;
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){$('qov').hidden=true;if(full){full=false;lastSig='';renderStage()}}});
+async function findVideo(s){ /* needs your own YouTube Data API key (see README) */
+  if(YT_KEY.includes('YOUR_')||VID[s.id]||YF.has(s.id))return;YF.add(s.id);
+  try{
+    const a=await(await jfetch('https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&videoEmbeddable=true&maxResults=1&q='+encodeURIComponent(s.title+' '+first(s.artist)+' karaoke')+'&key='+YT_KEY)).json();
+    const id=a.items&&a.items[0]&&a.items[0].id.videoId;
+    if(id){VID[s.id]=id;ls.set('sonata-vid',VID);if(R&&S.now&&S.now.song_id===s.id){lastSig='';renderStage()}}
+  }catch(e){}
+}
+window.addEventListener('error',e=>toast('Error: '+e.message));
+$('bReset').onclick=async e=>{e.preventDefault();try{(await navigator.serviceWorker.getRegistrations()).forEach(r=>r.unregister());(await caches.keys()).forEach(k=>caches.delete(k))}catch(x){}location.reload()};
 /* ---- boot ---- */
 (async()=>{
   if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
