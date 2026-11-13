@@ -45,3 +45,8 @@ create table if not exists songs(
 alter table songs enable row level security;
 create policy "read songs" on songs for select to anon using (true);
 -- Example: insert into songs values (10014,'Your New Song','Artist','New',210);
+
+-- Optional: store a karaoke video link and lyrics per song (host-only view in the app).
+-- Only add lyrics you have the right to use.
+alter table songs add column if not exists video text, add column if not exists lyrics text;
+-- Example: update songs set video='https://www.youtube.com/watch?v=VIDEO_ID' where id=20001;

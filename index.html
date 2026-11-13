@@ -57,6 +57,15 @@ header input{flex:1;min-width:110px;max-width:200px;margin-left:auto;padding:8px
 #ed{position:fixed;inset:0;z-index:30;background:rgba(0,20,40,.6);display:flex;align-items:center;justify-content:center;padding:16px}
 .edbox{background:var(--bg);color:var(--ink);border-radius:18px;padding:16px;width:min(560px,100%);max-height:92vh;overflow:auto}
 .edbox textarea,.edbox input{width:100%;margin:6px 0;padding:10px;border-radius:12px;border:1px solid var(--line);background:var(--card)}.edbox textarea{height:34vh;resize:vertical}
+@property --p{syntax:'<percentage>';inherits:false;initial-value:0%}
+.stage.full{background:#000}
+#lyr{background:#02121c;border-radius:14px;padding:10vh 10px;font-weight:600;line-height:1.25;max-height:42vh;-webkit-mask-image:linear-gradient(transparent,#000 15%,#000 85%,transparent);mask-image:linear-gradient(transparent,#000 15%,#000 85%,transparent)}
+.full #lyr{max-height:none}
+.ln{color:#17617f;opacity:1;padding:10px 0;transform:none}
+.ln.done{color:#19c3ff}
+.ln.on{color:transparent;background:linear-gradient(90deg,#19c3ff var(--p),#17617f var(--p));-webkit-background-clip:text;background-clip:text;font-weight:600;transform:none;transition:--p .5s linear}
+.up{opacity:.85;margin:8px 0 0}
+.vid.big{max-height:none;height:62vh}.full .vid.big{flex:1;height:auto}
 </style></head><body>
 <div class="waves" aria-hidden="true"><svg viewBox="0 0 1200 120" preserveAspectRatio="none"><path fill="var(--w1)" d="M0 60Q150 20 300 60T600 60T900 60T1200 60V120H0Z"/></svg><svg viewBox="0 0 1200 120" preserveAspectRatio="none"><path fill="var(--w2)" d="M0 70Q150 100 300 70T600 70T900 70T1200 70V120H0Z"/></svg></div>
 
@@ -81,7 +90,7 @@ header input{flex:1;min-width:110px;max-width:200px;margin-left:auto;padding:8px
 <div class="panel" id="qp"><div id="joinbox" hidden><div>Join code</div><b id="code"></b><div id="qr"></div></div><h3>Up next 🐚</h3><div class="list" id="queue"></div></div>
 </div></div>
 <div id="qov" hidden><h2>Scan to join the party</h2><div id="qbig"></div><b id="qcode"></b><p>Tap anywhere to close</p></div>
-<div id="ed" hidden><div class="edbox"><h3 id="edT"></h3><textarea id="edL" placeholder="Paste lyrics you are allowed to use. Or timed lines: [01:23.50] words"></textarea><input id="edV" placeholder="YouTube karaoke link (optional)"><p class="note">Saved on this laptop only. Plain lyrics scroll evenly across the song. Lines starting with [mm:ss.xx] highlight in time.</p><div class="row"><button class="add" id="edSave">Save</button><button class="sm" id="edX">Cancel</button><button class="sm" id="edClr">Clear</button></div></div></div>
+<div id="ed" hidden><div class="edbox"><h3 id="edT"></h3><textarea id="edL" placeholder="Paste lyrics you are allowed to use. Or timed lines: [01:23.50] words"></textarea><input type="file" id="edF" accept=".lrc,.txt"><input id="edV" placeholder="YouTube karaoke link (optional)"><p class="note">Saved on this laptop only. Plain lyrics scroll evenly across the song. Lines starting with [mm:ss.xx] highlight in time.</p><div class="row"><button class="add" id="edSave">Save</button><button class="sm" id="edX">Cancel</button><button class="sm" id="edClr">Clear</button></div></div></div>
 <div class="toast" id="toast"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
@@ -286,9 +295,9 @@ The Lord has promised good to me,
 His word my hope secures;
 He will my shield and portion be,
 As long as life endures.`}; /* public-domain hymn (John Newton). Other lyrics are added by the host. */
-let MEDIA=ls.get('sonata-media',{}),LY=[],lyAct=-1,lastSig='',full=false,edSong=null; /* cached list loads first, works offline */
+let MEDIA=ls.get('sonata-media',{}),LY=[],lyAct=-1,lastSig='',lastStart='',full=false,edSong=null; /* cached list loads first, works offline */
 let sb,R=null,S={sess:null,queue:[],now:null,hist:[]},cat='All',busy=false,ch,timers=[],lt,fav=ls.get('sonata-fav',[]);
-const grp=()=>S.sess&&S.sess.mode==='group',host=()=>R&&R.role==='host';
+const grp=()=>S.sess&&S.sess.mode==='group',host=()=>R&&R.role==='host',canPlay=()=>!grp()||(!(S.now&&S.now.status==='singing')&&!S.queue.length);
 
 function toast(m){const t=$('toast');t.textContent=m;t.classList.add('on');clearTimeout(toast.h);toast.h=setTimeout(()=>t.classList.remove('on'),2400)}
 function float(e){const s=document.createElement('span');s.className='fl';s.textContent=e;s.style.left=(5+Math.random()*85)+'vw';document.body.appendChild(s);setTimeout(()=>s.remove(),3100)}
@@ -371,7 +380,7 @@ async function finish(){
 function pick(id){
   const s=byId(id);if(!s)return toast('No song with ID '+id);
   const name=$('name').value.trim()||'Guest';ls.set('sonata-name',name);
-  if(!grp())return play(s.id,name);
+  if(canPlay())return play(s.id,name);
   sb.from('queue').insert({code:R.code,song_id:s.id,singer:name}).then(async r=>{
     if(r.error){if(!host())return toast('No connection. Try again.');S.queue.push({id:'l'+Date.now(),local:true,song_id:s.id,singer:name,ts:iso()});dirty=true;offUI();render();return toast('Offline: saved on this laptop')}
     await touch();toast('Reserved “'+s.title+'” 🎉');load()})
@@ -381,7 +390,7 @@ function updateStamp(){const t=ls.get('sonata-songs-ts',0);$('su').textContent=(
 async function updateSongs(manual){
   try{
     const r=ok(await sb.from('songs').select('*').order('id'));
-    const m=new Map(BUNDLED.map(x=>[x.id,x]));r.forEach(x=>m.set(x.id,{id:x.id,cat:x.cat,title:x.title,artist:x.artist,sec:x.sec}));
+    const m=new Map(BUNDLED.map(x=>[x.id,x]));r.forEach(x=>m.set(x.id,{id:x.id,cat:x.cat,title:x.title,artist:x.artist,sec:x.sec,video:x.video||'',lyrics:x.lyrics||''}));
     SONGS=[...m.values()].sort((a,b)=>a.id-b.id);ls.set('sonata-songs',SONGS);ls.set('sonata-songs-ts',Date.now());
     if(R)renderSongs();updateStamp();if(manual)toast('Song list updated ('+SONGS.length+' songs)')
   }catch(e){if(manual)toast('No connection. Using the saved list ('+SONGS.length+' songs)')}
@@ -392,8 +401,11 @@ function tick(){
     const el=(Date.now()-Date.parse(n.started_at))/1000,b=document.querySelector('.bar i'),t=$('tm');
     if(b)b.style.width=Math.min(100,el/song.sec*100)+'%';if(t)t.textContent=fmt(Math.min(el,song.sec))+' / '+fmt(song.sec);
     const lyr=$('lyr');
-    if(lyr&&LY.length){let k=-1;LY.forEach((l,i)=>{if(l.t!==null&&l.t<=el)k=i});if(k!==lyAct){lyAct=k;[...lyr.children].forEach((d,i)=>d.classList.toggle('on',i===k));const d=lyr.children[k];if(d)lyr.scrollTo({top:d.offsetTop-lyr.clientHeight/2+d.clientHeight/2,behavior:'smooth'})}}
-    if(host()&&el>=song.sec)finish();
+    if(lyr&&LY.length){let k=-1;LY.forEach((l,i)=>{if(l.t!==null&&l.t<=el)k=i});const kids=lyr.children;
+      if(k!==lyAct){lyAct=k;[...kids].forEach((d,i)=>{d.classList.toggle('on',i===k);d.classList.toggle('done',i<k&&LY[i].x!=='')});const d=kids[k];if(d)lyr.scrollTo({top:d.offsetTop-lyr.clientHeight/2+d.clientHeight/2,behavior:'smooth'})}
+      if(k>=0){const nx=LY.findIndex((l,i)=>i>k&&l.t!==null),end=nx<0?song.sec:LY[nx].t;kids[k].style.setProperty('--p',Math.max(0,Math.min(100,(el-LY[k].t)/Math.max(.5,end-LY[k].t)*100))+'%')}}
+    
+if(host()&&el>=song.sec)finish();
   }else if(host()&&grp()&&S.queue.length&&(!n||(n.status==='done'&&Date.now()-Date.parse(n.ended_at)>9000)))startNext();
 }
 
@@ -406,21 +418,23 @@ function parseLyr(t,sec){ /* plain text or LRC lines like [01:23.50] words */
   return L
 }
 function lyrHTML(song){
-  const m=MEDIA[song.id]||{},txt=m.lyrics||PD[song.title]||'',v=ytId(m.video);
+  const m=MEDIA[song.id]||{},txt=m.lyrics||song.lyrics||PD[song.title]||'',v=ytId(m.video||song.video);
   LY=parseLyr(txt,song.sec);lyAct=-1;
-  return (v?`<iframe class="vid" src="https://www.youtube.com/embed/${v}?autoplay=1&rel=0" allow="autoplay; encrypted-media; fullscreen" allowfullscreen></iframe>`:'')
-   +'<div id="lyr">'+(txt.trim()?LY.map(l=>`<div class="ln">${esc(l.x)||'&nbsp;'}</div>`).join(''):'<div class="nol">No lyrics saved for this song yet. Tap ✏️ to paste lyrics you are allowed to use, or add a karaoke video link.</div>')+'</div>'
+  const vid=v?`<iframe class="vid${txt.trim()?'':' big'}" src="https://www.youtube.com/embed/${v}?autoplay=1&rel=0" allow="autoplay; encrypted-media; fullscreen" allowfullscreen></iframe>`:'';
+  if(!txt.trim()){LY=[];return vid||'<div class="nol">No lyrics saved for this song yet.<br>Add lyrics you are allowed to use (paste, or upload a .lrc or .txt file), or a YouTube karaoke link.<div class="row" style="justify-content:center"><button class="btn" data-a="edit">✏️ Add lyrics / video</button></div></div>'}
+  return vid+'<div id="lyr">'+LY.map(l=>`<div class="ln">${esc(l.x)||'&nbsp;'}</div>`).join('')+'</div>'
 }
 function renderStage(){
   const n=S.now,song=n&&byId(n.song_id),h=host(),solo=!grp();
   if(!(n&&n.status==='singing'))full=false;
-  const sig=JSON.stringify([n&&[n.status,n.song_id,n.started_at,n.score,n.singer],S.queue.length,h,solo,full]);
+  if(h&&n&&n.status==='singing'&&n.started_at!==lastStart){lastStart=n.started_at;full=true}
+  const sig=JSON.stringify([n&&[n.status,n.song_id,n.started_at,n.score,n.singer],S.queue.length,S.queue[0]&&S.queue[0].id,h,solo,full]);
   if(sig===lastSig)return;lastSig=sig;
   $('stage').classList.toggle('full',full&&h);
   const react=solo?'':'<div class="row react">'+['👏','🔥','💖','🎉','🐬'].map(e=>`<button class="btn" data-r="${e}">${e}</button>`).join('')+'</div>';
   let x;
   if(n&&n.status==='singing'&&song)
-    x=`<small>NOW SINGING · #${song.id}</small><h2>${esc(song.title)}</h2><p>${esc(song.artist)}</p><p>🎤 <b>${esc(n.singer)}</b></p><div class="bar"><i></i></div><p id="tm"></p><div class="row">${h?`<button class="btn" data-a="full">${full?'🗗 Exit full screen':'⛶ Karaoke screen'}</button><button class="btn" data-a="edit">✏️ Lyrics / video</button><button class="btn" data-a="fin">⏹ Finish & score</button>`+(solo?'':'<button class="btn" data-a="skip">⏭ Skip</button>'):''}<a class="btn" target="_blank" rel="noopener" href="https://www.youtube.com/results?search_query=${encodeURIComponent(song.title+' '+song.artist+' karaoke')}">▶ Find karaoke video ↗</a></div>${h?lyrHTML(song):''}${react}`;
+    x=`<small>NOW SINGING · #${song.id}</small><h2>${esc(song.title)}</h2><p>${esc(song.artist)}</p><p>🎤 <b>${esc(n.singer)}</b></p><div class="bar"><i></i></div><p id="tm"></p><div class="row">${h?`<button class="btn" data-a="full">${full?'🗗 Exit full screen':'⛶ Karaoke screen'}</button><button class="btn" data-a="edit">✏️ Lyrics / video</button><button class="btn" data-a="fin">⏹ Finish & score</button>`+(solo?'':'<button class="btn" data-a="skip">⏭ Skip</button>'):''}<a class="btn" target="_blank" rel="noopener" href="https://www.youtube.com/results?search_query=${encodeURIComponent(song.title+' '+song.artist+' karaoke')}">▶ Find karaoke video ↗</a></div>${h?lyrHTML(song):''}${h&&S.queue[0]?`<p class="up">Up next: ${esc((byId(S.queue[0].song_id)||{}).title||'')} · ${esc(S.queue[0].singer)}</p>`:''}${react}`;
   else if(n&&n.status==='done'&&song){
     const v=VERD.find(v=>n.score>=v[0])[1];
     x=`<small>${esc(n.singer)} sang “${esc(song.title)}”</small><div class="score">${n.score}</div><div class="verdict">${v}</div><div class="row"><button class="btn" data-again="${song.id}">🔁 Sing again</button>${h&&!solo&&S.queue.length?'<button class="btn" data-a="skip">⏭ Next singer</button>':''}</div>${react}`}
@@ -436,7 +450,7 @@ function renderSongs(){
   else if(cat!=='All')l=SONGS.filter(s=>s.cat===cat);
   if(q)l=l.filter(s=>(s.title+' '+s.artist+' '+s.id).toLowerCase().includes(q));
   const e={Favs:'Tap ☆ on a song to add favorites.',Recent:'Songs sung in this session show up here.',Top:'Nothing sung yet. Be the first!'}[cat]||'No song found 🐟';
-  $('songs').innerHTML=l.length?l.map(s=>`<div class="item"><button class="st" data-f="${s.id}" aria-label="Favorite">${fav.includes(s.id)?'★':'☆'}</button><span class="sid">${s.id}</span><div class="meta"><b>${esc(s.title)}</b><span>${esc(s.artist)} · ${s.cat} · ${fmt(s.sec)}${cn[s.id]?' · sung ×'+cn[s.id]:''}</span></div><button class="add" data-s="${s.id}">${grp()?'＋ Reserve':'🎤 Sing'}</button></div>`).join(''):`<div class="empty">${e}</div>`
+  $('songs').innerHTML=l.length?l.map(s=>`<div class="item"><button class="st" data-f="${s.id}" aria-label="Favorite">${fav.includes(s.id)?'★':'☆'}</button><span class="sid">${s.id}</span><div class="meta"><b>${esc(s.title)}</b><span>${esc(s.artist)} · ${s.cat} · ${fmt(s.sec)}${cn[s.id]?' · sung ×'+cn[s.id]:''}</span></div><button class="add" data-s="${s.id}">${canPlay()?'▶ Play':'＋ Reserve'}</button></div>`).join(''):`<div class="empty">${e}</div>`
 }
 function renderQueue(){
   $('qn').textContent=S.queue.length?'('+S.queue.length+')':'';
@@ -478,6 +492,7 @@ $('bJoin').onclick=async()=>{
 function openEd(){const n=S.now,song=n&&byId(n.song_id);if(!song)return;edSong=song;const m=MEDIA[song.id]||{};$('edT').textContent='#'+song.id+' '+song.title;$('edL').value=m.lyrics||'';$('edV').value=m.video||'';$('ed').hidden=false}
 $('edSave').onclick=()=>{MEDIA[edSong.id]={lyrics:$('edL').value,video:$('edV').value.trim()};ls.set('sonata-media',MEDIA);$('ed').hidden=true;lastSig='';renderStage();toast('Saved on this device')};
 $('edX').onclick=()=>$('ed').hidden=true;
+$('edF').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{$('edL').value=r.result};r.readAsText(f)};
 $('edClr').onclick=()=>{$('edL').value='';$('edV').value=''};
 /* ---- big QR for sharing ---- */
 $('bQR').onclick=()=>{const b=$('qbig');b.innerHTML='';$('qcode').textContent=R.code;const z=Math.floor(Math.min(innerWidth,innerHeight)*.65);if(window.QRCode)new QRCode(b,{text:location.origin+location.pathname+'?room='+R.code,width:z,height:z});$('qov').hidden=false};

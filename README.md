@@ -43,3 +43,6 @@
     git remote add origin https://github.com/YOUR-USERNAME/sonata.git
     git push -u origin main
 Later updates: `git add .`, `git commit -m "message"`, `git push`.
+
+## Play vs Reserve
+When nothing is playing and the queue is empty, a song's button says **▶ Play** and starts it right away. While a song is playing or others are waiting, it says **＋ Reserve**.
