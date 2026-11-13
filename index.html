@@ -47,7 +47,7 @@ header input{flex:1;min-width:110px;max-width:200px;margin-left:auto;padding:8px
 #joinbox{text-align:center;margin-bottom:12px}#joinbox b{font-size:40px;letter-spacing:.25em;color:var(--sea)}#qr{display:flex;justify-content:center;margin-top:8px}
 .toast{position:fixed;left:50%;bottom:100px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:12px;opacity:0;transition:opacity .25s;pointer-events:none;max-width:90vw;z-index:9}.toast.on{opacity:1}
 .fl{position:fixed;bottom:80px;font-size:34px;pointer-events:none;animation:u 3s ease-out forwards;z-index:25}@keyframes u{to{transform:translateY(-70vh) rotate(20deg);opacity:0}}
-.stage.full{position:fixed;inset:0;z-index:20;border-radius:0;overflow:auto;display:flex;flex-direction:column;padding:1.5vh 3vw}
+.stage.full{position:fixed;inset:0;z-index:20;border-radius:0;overflow:hidden;display:flex;flex-direction:column;padding:1.5vh 3vw}
 #lyr{position:relative;max-height:34vh;overflow-y:auto;text-align:center;font-size:clamp(18px,2.4vw,28px);margin-top:10px;padding:6px;scrollbar-width:none}
 
 .ln{opacity:.5;padding:4px 0;transition:all .3s}.ln.on{opacity:1;font-weight:800;transform:scale(1.05)}.nol{opacity:.85;font-size:15px;padding:14px}
@@ -67,6 +67,7 @@ header input{flex:1;min-width:110px;max-width:200px;margin-left:auto;padding:8px
 .full #lyr{flex:1;max-height:none;font-size:clamp(32px,5.6vw,72px);padding:2vh 2vw}
 .full .bar,.full #tm{opacity:.35;transform:scale(.7);transform-origin:top center}
 .tl{text-align:center;margin:10vh 0}
+.full .tl{margin:0;flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center}
 .tl #tlx{display:block;font-size:clamp(16px,3vw,26px);letter-spacing:.15em;opacity:.8;text-transform:uppercase;animation:pop 1s ease infinite}
 .tl b{display:block;font-size:clamp(50px,11vw,120px);font-weight:800;line-height:1}
 @keyframes pop{0%,100%{opacity:.6;transform:scale(1)}50%{opacity:1;transform:scale(1.08)}}
@@ -102,8 +103,9 @@ header input{flex:1;min-width:110px;max-width:200px;margin-left:auto;padding:8px
 <div class="panel" id="qp"><div id="joinbox" hidden><div>Join code</div><b id="code"></b><div id="qr"></div></div><h3>Up next 🐚</h3><div class="list" id="queue"></div></div>
 </div></div>
 <div id="qov" hidden><h2>Scan to join the party</h2><div id="qbig"></div><b id="qcode"></b><p>Tap anywhere to close</p></div>
-<div id="ed" hidden><div class="edbox"><h3 id="edT"></h3><textarea id="edL" placeholder="Paste lyrics you are allowed to use. Or timed lines: [01:23.50] words"></textarea><input type="file" id="edF" accept=".lrc,.txt"><input id="edV" placeholder="YouTube karaoke link (optional)"><input id="edA" placeholder="Minus-one audio URL (optional, e.g. mp3 link)"><input type="file" id="edAF" accept="audio/*"><small id="edAn" class="note"></small><p class="note">Saved on this laptop only. Plain lyrics scroll evenly across the song. Lines starting with [mm:ss.xx] highlight in time.</p><audio id="kaudio" hidden></audio>
+<div id="ed" hidden><div class="edbox"><h3 id="edT"></h3><textarea id="edL" placeholder="Paste lyrics you are allowed to use. Or timed lines: [01:23.50] words"></textarea><input type="file" id="edF" accept=".lrc,.txt"><input id="edV" placeholder="YouTube karaoke link (optional)"><input id="edA" placeholder="Minus-one audio URL (optional, e.g. mp3 link)"><input type="file" id="edAF" accept="audio/*"><small id="edAn" class="note"></small><div id="edMatches"></div><p class="note">Saved on this laptop only. Plain lyrics scroll evenly across the song. Lines starting with [mm:ss.xx] highlight in time.</p>
 <div class="row"><button class="add" id="edSave">Save</button><button class="sm" id="edX">Cancel</button><button class="sm" id="edClr">Clear</button></div></div></div>
+<audio id="kaudio" hidden preload="auto"></audio>
 <div class="toast" id="toast"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
@@ -448,7 +450,11 @@ function playAudio(song,live){
   const a=$('kaudio');if(!a)return;
   const src=song&&(MEDIA[song.id]||{}).audio;
   if(!src||!live){if(!a.paused)a.pause();a.removeAttribute('src');delete a.dataset.song;return}
-  if(a.dataset.song!==String(song.id)){a.dataset.song=song.id;a.src=src;a.currentTime=0;a.onended=onAudioEnd;a.play().catch(()=>{})}
+  if(a.dataset.song!==String(song.id)){
+    a.dataset.song=song.id;a.muted=false;a.volume=1;a.src=src;a.currentTime=0;a.onended=onAudioEnd;
+    a.onerror=()=>toast('Could not play the minus-one audio for this song (bad link or blocked content)');
+    a.play().catch(err=>toast('Audio blocked by the browser: '+err.message+'. Click anywhere once, then try again.'))
+  }
 }
 
 function lyrHTML(song,live){
@@ -475,7 +481,7 @@ function renderStage(){
   if(n&&n.status==='singing'&&song){
     const head=full&&h?'':`<small>NOW SINGING · #${sid(song)}</small><h2>${esc(song.title)}</h2><p>${esc(song.artist)}</p><p>🎤 <b>${esc(n.singer)}</b></p>`;
     const ctrl=full&&h?'':`<div class="row">${h?`<button class="btn" data-a="full">${full?'🗗 Exit full screen':'⛶ Karaoke screen'}</button><button class="btn" data-a="view">👁 View</button><button class="btn" data-a="edit">✏️ Lyrics / audio</button><button class="btn" data-a="fin">⏹ Finish & score</button>`+(solo?'':'<button class="btn" data-a="skip">⏭ Skip</button>'):''}<a class="btn" target="_blank" rel="noopener" href="https://www.youtube.com/results?search_query=${encodeURIComponent(song.title+' '+song.artist+' karaoke')}">▶ Find video ↗</a></div>`+(solo?'':react);
-    x=exitBtn+`<div class="tl" id="tl" hidden><span id="tlx">Get ready</span><b id="tln"></b></div>${live?'<div id="npLabel">Now Playing</div>':''}${head}<div class="bar"><i></i></div><p id="tm"></p>${live?'<div id="nextLabel" hidden></div>':''}${ctrl}${h?lyrHTML(song,live):''}${h&&!full&&S.queue[0]?`<p class="up">Up next: ${esc((byId(S.queue[0].song_id)||{}).title||'')} · ${esc(S.queue[0].singer)}</p>`:''}`;
+    x=exitBtn+`<div class="tl" id="tl" hidden><span id="tlx">Get ready</span><b id="tln"></b></div>${live?`<div id="npLabel">Now Playing: ${esc(song.title)}</div>`:''}${head}<div class="bar"><i></i></div><p id="tm"></p>${live?'<div id="nextLabel" hidden></div>':''}${ctrl}${h?lyrHTML(song,live):''}${h&&!full&&S.queue[0]?`<p class="up">Up next: ${esc((byId(S.queue[0].song_id)||{}).title||'')} · ${esc(S.queue[0].singer)}</p>`:''}`;
   }else if(n&&n.status==='done'&&song){
     const v=VERD.find(v=>n.score>=v[0])[1];
     x=`<small>${esc(n.singer)} sang "${esc(song.title)}"</small><div class="score">${n.score}</div><div class="verdict">${v}</div><div class="row"><button class="btn" data-again="${song.id}">🔁 Sing again</button>${h&&!solo&&S.queue.length?'<button class="btn" data-a="skip">⏭ Next singer</button>':''}</div>${react}`}
@@ -577,10 +583,25 @@ async function bulkLyrics(){
   b.disabled=false;b.textContent='⬇ Lyrics';toast('Lyrics saved for '+SONGS.filter(s=>lyrOf(s)).length+' songs')
 }
 /* ---- lyrics editor (saved on this device) ---- */
-function openEd(){const n=S.now,song=n&&byId(n.song_id);if(!song)return;edSong=song;const m=MEDIA[song.id]||{};$('edT').textContent='#'+sid(song)+' '+song.title;$('edL').value=m.lyrics||'';$('edV').value=m.video||'';$('edA').value=(m.audio&&!m.audio.startsWith('blob:'))?m.audio:'';$('edAn').textContent=m.audio?'Audio attached'+(m.audio.startsWith('blob:')?' (this browser tab only; re-add after refresh)':''):'';$('ed').hidden=false}
+function openEd(){const n=S.now,song=n&&byId(n.song_id);if(!song)return;edSong=song;const m=MEDIA[song.id]||{};$('edT').textContent='#'+sid(song)+' '+song.title;$('edL').value=m.lyrics||'';$('edV').value=m.video||'';$('edMatches').innerHTML='<button class="sm" id="edSearch">🔍 Find lyrics online</button>';$('edA').value=(m.audio&&!m.audio.startsWith('blob:'))?m.audio:'';$('edAn').textContent=m.audio?'Audio attached'+(m.audio.startsWith('blob:')?' (this browser tab only; re-add after refresh)':''):'';$('ed').hidden=false}
 $('edSave').onclick=()=>{const f=$('edAF').files[0];const audio=f?URL.createObjectURL(f):$('edA').value.trim();MEDIA[edSong.id]={lyrics:$('edL').value,video:$('edV').value.trim(),audio};try{ls.set('sonata-media',MEDIA)}catch(e){toast('Saved for this session (audio file too large to keep after refresh)')}$('ed').hidden=true;lastSig='';delete document.getElementById('kaudio')?.dataset.song;renderStage();toast('Saved')};
 $('edX').onclick=()=>$('ed').hidden=true;
 $('edF').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{$('edL').value=r.result};r.readAsText(f)};
+$('edMatches').innerHTML='<button class="sm" id="edSearch">🔍 Find lyrics online</button>';
+document.getElementById('edMatches').onclick=async e=>{
+  if(e.target.id==='edSearch'){
+    e.target.textContent='Searching…';
+    try{
+      const a=await(await jfetch('https://lrclib.net/api/search?q='+encodeURIComponent(edSong.title+' '+first(edSong.artist)))).json();
+      const list=a.filter(x=>x.syncedLyrics||x.plainLyrics).slice(0,8);
+      $('edMatches').innerHTML=(list.length?list.map((x,i)=>`<div class="item"><div class="meta"><b>${esc(x.trackName)}</b><span>${esc(x.artistName)} · ${fmt(x.duration||0)}${x.syncedLyrics?' · timed':' · plain'}</span></div><button class="add" data-pick="${i}">Use this</button></div>`).join(''):'<div class="empty">No match found. Paste lyrics instead.</div>')+'<button class="sm" id="edSearch">🔍 Search again</button>';
+      $('edMatches').dataset.results=JSON.stringify(list)
+    }catch(err){toast('Online search needs a connection');$('edMatches').innerHTML='<button class="sm" id="edSearch">🔍 Find lyrics online</button>'}
+  }else if(e.target.dataset.pick!==undefined){
+    const list=JSON.parse($('edMatches').dataset.results||'[]'),x=list[+e.target.dataset.pick];
+    if(x){$('edL').value=x.syncedLyrics||x.plainLyrics||'';toast('Loaded. Review it, then press Save.')}
+  }
+};
 $('edClr').onclick=()=>{$('edL').value='';$('edV').value=''};
 /* ---- big QR for sharing ---- */
 $('bQR').onclick=()=>{const b=$('qbig');b.innerHTML='';$('qcode').textContent=R.code;const z=Math.floor(Math.min(innerWidth,innerHeight)*.65);if(window.QRCode)new QRCode(b,{text:location.origin+location.pathname+'?room='+R.code,width:z,height:z});$('qov').hidden=false};
