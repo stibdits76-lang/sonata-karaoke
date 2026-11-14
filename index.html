@@ -83,6 +83,17 @@ header input{flex:1;min-width:110px;max-width:200px;margin-left:auto;padding:8px
 .ln.on{color:transparent;background:linear-gradient(90deg,#19c3ff var(--p),#17617f var(--p));-webkit-background-clip:text;background-clip:text;font-weight:600;transform:none;transition:--p .5s linear}
 .up{opacity:.85;margin:8px 0 0}
 .vid.big{max-height:none;height:62vh}.full .vid.big{flex:1;height:auto}
+/* maximized karaoke: the video fills the whole screen and the labels float on top of it */
+.stage.full{padding:0}
+.full .vid.big{position:fixed;inset:0;width:100vw;height:100vh;max-height:none;margin:0;border-radius:0;aspect-ratio:auto;flex:none}
+.full .vid.big iframe,.full .vid.big #ytp{border-radius:0}
+.full .vid:not(.big){height:55vh;max-height:none;margin:0;border-radius:0;aspect-ratio:auto;flex:none}
+.full #npLabel,.full #nextLabel,.full .tl{position:fixed;left:0;right:0;margin:0 auto;width:max-content;max-width:92vw;z-index:22}
+.full #npLabel,.full #nextLabel{top:2.5vh}
+.full .tl{top:9vh;padding:8px 32px 12px;border-radius:26px;background:linear-gradient(90deg,rgba(10,95,160,.88),rgba(63,182,232,.88) 60%,rgba(143,224,255,.88));box-shadow:0 8px 30px rgba(0,0,0,.4)}
+.full .tl b{font-size:clamp(48px,9vw,110px)}
+.full .bar{position:fixed;left:0;right:0;bottom:0;margin:0;height:4px;border-radius:0;z-index:22;opacity:.8;transform:none}
+.full #tm{display:none}
 </style></head><body>
 <div class="waves" aria-hidden="true"><svg viewBox="0 0 1200 120" preserveAspectRatio="none"><path fill="var(--w1)" d="M0 60Q150 20 300 60T600 60T900 60T1200 60V120H0Z"/></svg><svg viewBox="0 0 1200 120" preserveAspectRatio="none"><path fill="var(--w2)" d="M0 70Q150 100 300 70T600 70T900 70T1200 70V120H0Z"/></svg></div>
 
@@ -409,7 +420,7 @@ async function finish(){
 function pick(id){
   const s=byId(id);if(!s)return toast('No song with ID '+id);
   const name=$('name').value.trim()||'Guest';ls.set('sonata-name',name);
-  if(canPlay())return play(s.id,name);
+  if(canPlay()){if(host())goFS();return play(s.id,name)}
   sb.from('queue').insert({code:R.code,song_id:s.id,singer:name}).then(async r=>{
     if(r.error){if(!host())return toast('No connection. Try again.');S.queue.push({id:'l'+Date.now(),local:true,song_id:s.id,singer:name,ts:iso()});dirty=true;offUI();render();return toast('Offline: saved on this laptop')}
     await touch();toast('Reserved “'+s.title+'” 🎉');load()})
@@ -435,12 +446,13 @@ function tick(){
     const sn=$('sndBtn');if(sn){let mu=false;try{mu=ytOn&&ytState===1&&ytp.isMuted()}catch(e){}sn.hidden=!mu}
     if(b)b.style.width=Math.max(0,Math.min(100,el/D*100))+'%';
     if(t)t.textContent=fmt(Math.max(0,Math.min(el,D)))+' / '+fmt(D);
-    const fw=firstWordAt(song),rem=fw-el; /* the song is already playing — this is only an overlay, never a delay */
+    const fw=firstWordAt(song),rem=fw-el; /* the song is already playing; the banner is only an overlay */
     if(tl){
-      if(rem>0){tl.hidden=false;if(rem<=3){$('tlx').textContent='Get ready';$('tln').textContent=Math.ceil(rem)}else{$('tlx').textContent='Lyrics starting in';$('tln').textContent=Math.ceil(rem)+'s'}}
+      if(rem>0&&rem<=5){tl.hidden=false;$('tlx').textContent='Get ready';$('tln').textContent=Math.ceil(rem)}
       else tl.hidden=true;
     }
-    if(rem<=0&&lastLive!==n.started_at){lastLive=n.started_at;lastSig='';renderStage();return}
+    if(rem<=0&&lastLive!==n.started_at){lastLive=n.started_at;const np=$('npLabel');if(np){np.hidden=false;np.style.animation='none';void np.offsetWidth;np.style.animation=''}}
+    const un=$('upNext');if(un){const q0=S.queue[0],us=q0&&byId(q0.song_id);un.textContent=q0?'Up next: '+(us?us.title:'')+' · '+q0.singer:''}
     if(!$('kaudio'))playAudio(song,true);
     const nb=$('nextLabel');
     if(nb){const nq=S.queue[0];if(nq&&D-el<=15&&D-el>-2){nb.hidden=false;const ns=byId(nq.song_id);nb.textContent='Next: '+(ns?ns.title:'')+' · '+nq.singer}else nb.hidden=true}
@@ -497,7 +509,7 @@ function renderStage(){
   if(!(n&&n.status==='singing'))full=false;
   if(h&&n&&n.status==='singing'&&n.started_at!==lastStart){lastStart=n.started_at;full=true}
   const live=!!(n&&n.started_at&&Date.parse(n.started_at)<=Date.now());
-  const sig=JSON.stringify([live,n&&[n.status,n.song_id,n.started_at,n.score,n.singer],S.queue.length,S.queue[0]&&S.queue[0].id,h,solo,full]);
+  const sig=JSON.stringify([live,n&&[n.status,n.song_id,n.started_at,n.score,n.singer],(n&&n.status==='singing')?'':[S.queue.length,S.queue[0]&&S.queue[0].id],h,solo,full]);
   if(sig===lastSig)return;lastSig=sig;
   $('stage').classList.toggle('full',full&&h);
   const react=solo?'':'<div class="row react">'+['👏','🔥','💖','🎉','🐬'].map(e=>`<button class="btn" data-r="${e}">${e}</button>`).join('')+'</div>';
@@ -506,8 +518,7 @@ function renderStage(){
   if(n&&n.status==='singing'&&song){
     const head=full&&h?'':`<small>NOW SINGING · #${sid(song)}</small><h2>${esc(song.title)}</h2><p>${esc(song.artist)}</p><p>🎤 <b>${esc(n.singer)}</b></p>`;
     const ctrl=full&&h?'':`<div class="row">${h?`<button class="btn" data-a="full">${full?'🗗 Exit full screen':'⛶ Karaoke screen'}</button><button class="btn" data-a="view">👁 View</button><button class="btn" data-a="edit">✏️ Lyrics / audio</button><button class="btn" data-a="nextvid">Other video</button><button class="btn" data-a="lyrearlier">Lyrics earlier</button><button class="btn" data-a="lyrlater">Lyrics later</button><button class="btn" data-a="fin">⏹ Finish & score</button>`+(solo?'':'<button class="btn" data-a="skip">⏭ Skip</button>'):''}<a class="btn" target="_blank" rel="noopener" href="https://www.youtube.com/results?search_query=${encodeURIComponent(song.title+' '+song.artist+' karaoke')}">▶ Find video ↗</a></div>`+(solo?'':react);
-    const elNow=(Date.now()-Date.parse(n.started_at))/1000,singing=live&&elNow>=firstWordAt(song);
-    x=exitBtn+`<div class="tl" id="tl" hidden><span id="tlx">Get ready</span><b id="tln"></b></div>${singing?`<div id="npLabel">Now Playing: ${esc(song.title)}</div>`:''}${head}<div class="bar"><i></i></div><p id="tm"></p>${live?'<div id="nextLabel" hidden></div>':''}${ctrl}${h?lyrHTML(song,live):''}${h&&!full&&S.queue[0]?`<p class="up">Up next: ${esc((byId(S.queue[0].song_id)||{}).title||'')} · ${esc(S.queue[0].singer)}</p>`:''}`;
+    x=exitBtn+`<div class="tl" id="tl" hidden><span id="tlx">Get ready</span><b id="tln"></b></div>${live?`<div id="npLabel" hidden>Now Playing: ${esc(song.title)}</div>`:''}${head}<div class="bar"><i></i></div><p id="tm"></p>${live?'<div id="nextLabel" hidden></div>':''}${ctrl}${h?lyrHTML(song,live):''}${h&&!full?'<p class="up" id="upNext"></p>':''}`;
   }else if(n&&n.status==='done'&&song){
     const v=VERD.find(v=>n.score>=v[0])[1];
     x=`<small>${esc(n.singer)} sang "${esc(song.title)}"</small><div class="score">${n.score}</div><div class="verdict">${v}</div><div class="row"><button class="btn" data-again="${song.id}">🔁 Sing again</button>${h&&!solo&&S.queue.length?'<button class="btn" data-a="skip">⏭ Next singer</button>':''}</div>${react}`}
@@ -547,7 +558,7 @@ document.addEventListener('click',e=>{
   else if(t.dataset.r)ch&&ch.send({type:'broadcast',event:'react',payload:{e:t.dataset.r}});
   else if(t.dataset.a==='fin')finish();
   else if(t.dataset.a==='skip')startNext();
-  else if(t.dataset.a==='full'){full=!full;lastSig='';renderStage()}
+  else if(t.dataset.a==='full'){full=!full;lastSig='';full?goFS():exitFS();renderStage()}
   else if(t.dataset.a==='edit')openEd();
   else if(t.dataset.a==='lyrlater')nudge(.5);
   else if(t.dataset.a==='nextvid')otherVideo();
@@ -695,6 +706,9 @@ function mountYT(resume){
   }})
 }
 function nudge(d){const g=S.now&&byId(S.now.song_id);if(!g)return;const m=MEDIA[g.id]||{};m.off=Math.round(((m.off||0)+d)*10)/10;MEDIA[g.id]=m;ls.set('sonata-media',MEDIA);toast('Lyrics '+(m.off>0?'delayed ':m.off<0?'earlier ':'in sync ')+(m.off?Math.abs(m.off)+'s ':'')+'vs the video')}
+function goFS(){const d=document.documentElement;if(!document.fullscreenElement&&d.requestFullscreen)d.requestFullscreen().catch(()=>{})}
+function exitFS(){if(document.fullscreenElement&&document.exitFullscreen)document.exitFullscreen().catch(()=>{})}
+document.addEventListener('fullscreenchange',()=>{if(!document.fullscreenElement&&full){full=false;lastSig='';renderStage()}});
 $('sndBtn').onclick=()=>{try{ytp.unMute();ytp.setVolume(100)}catch(e){}$('sndBtn').hidden=true};
 /* ---- boot ---- */
 (async()=>{
