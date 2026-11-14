@@ -67,10 +67,10 @@ header input{flex:1;min-width:110px;max-width:200px;margin-left:auto;padding:8px
 #nextLabel{align-self:center;margin-top:8px;font-size:clamp(12px,1.8vw,15px);padding:6px 18px;border-radius:99px;color:#eafcff;background:linear-gradient(90deg,#0a3a5c,#2aa7de 60%,#8fe0ff);border:1px solid rgba(143,224,255,.5);box-shadow:0 3px 14px rgba(10,116,185,.35);transition:opacity .4s}
 .full #lyr{flex:1;max-height:none;font-size:clamp(32px,5.6vw,72px);padding:2vh 2vw}
 .full .bar,.full #tm{opacity:.35;transform:scale(.7);transform-origin:top center}
-.tl{text-align:center;margin:10vh 0}
-.full .tl{margin:0;flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.tl{text-align:center;margin:14px 0}
+.full .tl{margin:3vh 0 1vh}
 .tl #tlx{display:block;font-size:clamp(16px,3vw,26px);letter-spacing:.15em;opacity:.8;text-transform:uppercase;animation:pop 1s ease infinite}
-.tl b{display:block;font-size:clamp(50px,11vw,120px);font-weight:800;line-height:1}
+.tl b{display:block;font-size:clamp(34px,7vw,64px);font-weight:800;line-height:1.1;margin-top:2px}
 @keyframes pop{0%,100%{opacity:.6;transform:scale(1)}50%{opacity:1;transform:scale(1.08)}}
 
 #lyr{background:#02121c;border-radius:14px;padding:5vh 10px;font-weight:600;line-height:1.3;max-height:42vh;-webkit-mask-image:linear-gradient(transparent,#000 6%,#000 94%,transparent);mask-image:linear-gradient(transparent,#000 6%,#000 94%,transparent)}
@@ -381,8 +381,8 @@ async function flush(){ /* push changes made while offline */
 }
 async function play(songId,singer){
   if(busy)return;busy=true;
-  const _song=byId(songId);if(_song)fetchLyrics(_song);const _delay=(_song?introDelay(_song):READY_DELAY/1000)*1000;
-  S.now={code:R.code,song_id:+songId,singer,started_at:new Date(Date.now()+_delay).toISOString(),status:'singing',score:null,ended_at:null};render();
+  const _song=byId(songId);if(_song)fetchLyrics(_song);
+  S.now={code:R.code,song_id:+songId,singer,started_at:iso(),status:'singing',score:null,ended_at:null};render();
   try{ok(await sb.from('playing').upsert(S.now));await touch();await load()}catch(e){dirty=true;offUI()}
   setTimeout(()=>busy=false,1000)
 }
@@ -425,11 +425,15 @@ function tick(){
     const el=useAudio?ka.currentTime:(Date.now()-Date.parse(n.started_at))/1000,D=useAudio?(ka.duration||dur(song)):dur(song),b=document.querySelector('.bar i'),t=$('tm'),tl=$('tl');
     if(b)b.style.width=Math.max(0,Math.min(100,el/D*100))+'%';
     if(t)t.textContent=fmt(Math.max(0,Math.min(el,D)))+' / '+fmt(D);
-    if(tl){if(el<0){tl.hidden=false;$('tln').textContent=Math.ceil(-el)}else tl.hidden=true}
-    if(el>=0&&lastLive!==n.started_at){lastLive=n.started_at;lastSig='';renderStage();return}
+    const fw=firstWordAt(song),rem=fw-el; /* the song is already playing — this is only an overlay, never a delay */
+    if(tl){
+      if(rem>0){tl.hidden=false;if(rem<=3){$('tlx').textContent='Get ready';$('tln').textContent=Math.ceil(rem)}else{$('tlx').textContent='Lyrics starting in';$('tln').textContent=Math.ceil(rem)+'s'}}
+      else tl.hidden=true;
+    }
+    if(rem<=0&&lastLive!==n.started_at){lastLive=n.started_at;lastSig='';renderStage();return}
+    if(!$('kaudio'))playAudio(song,true);
     const nb=$('nextLabel');
     if(nb){const nq=S.queue[0];if(nq&&D-el<=15&&D-el>-2){nb.hidden=false;const ns=byId(nq.song_id);nb.textContent='Next: '+(ns?ns.title:'')+' · '+nq.singer}else nb.hidden=true}
-    if(!$('kaudio'))playAudio(song,el>=0);
     const lyr=$('lyr');
     if(lyr&&LY.length){let k=-1;LY.forEach((l,i)=>{if(l.t!==null&&l.t<=el)k=i});const kids=lyr.children;
       if(k!==lyAct){lyAct=k;[...kids].forEach((d,i)=>{d.classList.toggle('on',i===k);d.classList.toggle('done',i<k&&LY[i].x!=='')});const d=kids[k];if(d)lyr.scrollTo({top:d.offsetTop-lyr.clientHeight/2+d.clientHeight/2,behavior:'smooth'})}
@@ -446,11 +450,11 @@ function parseLyr(t,sec){ /* plain text or LRC lines like [01:23.50] words */
   if(!timed){const n=L.filter(l=>l.x).length||1;let i=0;L.forEach(l=>{if(l.x)l.t=3+(i++/n)*Math.max(10,sec-10)})}
   L.timed=timed;return L
 }
-function introDelay(song){ /* how long to show "Get ready" — until the first real word, when we know it */
-  const txt=lyrOf(song);if(!txt)return READY_DELAY/1000;
-  const L=parseLyr(txt,dur(song));if(!L.timed)return READY_DELAY/1000; /* plain lyrics have made-up timing, not a real intro length */
+function firstWordAt(song){ /* when the first lyric word is actually due — the real end of the intro */
+  const txt=lyrOf(song);if(!txt)return 3; /* no lyrics yet: a short, non-blocking "get ready" only */
+  const L=parseLyr(txt,dur(song));if(!L.timed)return 3; /* plain lyrics have made-up timing, not a real intro length */
   const first=L.find(l=>l.x);
-  return first&&first.t!=null?Math.max(3,Math.min(first.t,25)):READY_DELAY/1000
+  return first&&first.t!=null?first.t:3
 }
 /* ---- minus-one audio ---- */
 function onAudioEnd(){if(host())finish()}
@@ -490,7 +494,8 @@ function renderStage(){
   if(n&&n.status==='singing'&&song){
     const head=full&&h?'':`<small>NOW SINGING · #${sid(song)}</small><h2>${esc(song.title)}</h2><p>${esc(song.artist)}</p><p>🎤 <b>${esc(n.singer)}</b></p>`;
     const ctrl=full&&h?'':`<div class="row">${h?`<button class="btn" data-a="full">${full?'🗗 Exit full screen':'⛶ Karaoke screen'}</button><button class="btn" data-a="view">👁 View</button><button class="btn" data-a="edit">✏️ Lyrics / audio</button><button class="btn" data-a="fin">⏹ Finish & score</button>`+(solo?'':'<button class="btn" data-a="skip">⏭ Skip</button>'):''}<a class="btn" target="_blank" rel="noopener" href="https://www.youtube.com/results?search_query=${encodeURIComponent(song.title+' '+song.artist+' karaoke')}">▶ Find video ↗</a></div>`+(solo?'':react);
-    x=exitBtn+`<div class="tl" id="tl" hidden><span id="tlx">Get ready</span><b id="tln"></b></div>${live?`<div id="npLabel">Now Playing: ${esc(song.title)}</div>`:''}${head}<div class="bar"><i></i></div><p id="tm"></p>${live?'<div id="nextLabel" hidden></div>':''}${ctrl}${h?lyrHTML(song,live):''}${h&&!full&&S.queue[0]?`<p class="up">Up next: ${esc((byId(S.queue[0].song_id)||{}).title||'')} · ${esc(S.queue[0].singer)}</p>`:''}`;
+    const elNow=(Date.now()-Date.parse(n.started_at))/1000,singing=live&&elNow>=firstWordAt(song);
+    x=exitBtn+`<div class="tl" id="tl" hidden><span id="tlx">Get ready</span><b id="tln"></b></div>${singing?`<div id="npLabel">Now Playing: ${esc(song.title)}</div>`:''}${head}<div class="bar"><i></i></div><p id="tm"></p>${live?'<div id="nextLabel" hidden></div>':''}${ctrl}${h?lyrHTML(song,live):''}${h&&!full&&S.queue[0]?`<p class="up">Up next: ${esc((byId(S.queue[0].song_id)||{}).title||'')} · ${esc(S.queue[0].singer)}</p>`:''}`;
   }else if(n&&n.status==='done'&&song){
     const v=VERD.find(v=>n.score>=v[0])[1];
     x=`<small>${esc(n.singer)} sang "${esc(song.title)}"</small><div class="score">${n.score}</div><div class="verdict">${v}</div><div class="row"><button class="btn" data-again="${song.id}">🔁 Sing again</button>${h&&!solo&&S.queue.length?'<button class="btn" data-a="skip">⏭ Next singer</button>':''}</div>${react}`}
