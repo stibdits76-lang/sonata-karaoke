@@ -1,14 +1,5 @@
 # SONATA – karaoke with phone reservations (Supabase edition)
 
-## Setup (about 10 minutes)
-1. Create a free project at supabase.com.
-2. Open **SQL Editor**, paste `schema.sql`, click **Run**.
-   If `pg_cron` errors, enable it under **Database > Extensions**, then run again.
-3. Open **Project Settings > API**. Copy the **Project URL** and the **anon public** key.
-4. In `index.html`, replace only the quoted values `YOUR_SUPABASE_URL` and `YOUR_SUPABASE_ANON_KEY` near the top of the script. Leave the other lines as they are.
-5. Deploy `index.html` as a static site: drag the folder into Netlify Drop, or use Cloudflare Pages or GitHub Pages.
-6. Open the site on the laptop, choose **Host a party**, and have phones scan the QR code.
-
 ## How it works
 - **Solo:** pick a song and sing. Favorites, Recent and Top lists are available.
 - **Group:** the laptop is the stage. Phones join with a 4-letter code or QR, reserve songs while someone sings, and send reactions.
@@ -63,3 +54,24 @@ SONATA doesn't host music. With a free YouTube Data API key, the host finds an e
 3. Put it in `index.html`: replace `YOUR_YOUTUBE_API_KEY` near the top of the script.
 Each new song search uses part of the free daily quota. Found videos are saved, so replays cost nothing.
 The **👁 View** button on the host screen cycles Video, Video + lyrics, and Lyrics only. Without a key, use ✏️ to paste a YouTube link per song.
+
+## Music and sync (YouTube player)
+SONATA does not download or extract audio. The music comes from a YouTube karaoke video played through YouTube's own embedded player (add a link with the pencil button, or set a YouTube API key so the host finds one automatically).
+- The video starts muted (browsers allow that) and is then unmuted. If the browser still blocks sound, tap **Tap for sound** once.
+- Lyrics follow the video's real playback time. Karaoke videos often have a different intro from the recording the lyrics were timed to, so use **Lyrics earlier / later** (or the [ and ] keys) to nudge by half a second. The nudge is saved per song.
+- A song with no video link and no audio file has no music source, and the host screen says so.
+
+## Automatic karaoke video (YouTube API key)
+With your key set, pressing Play on a song with no video makes the host look one up (a short "Finding the karaoke video" wait the first time), then play it. Songs near the top of the queue are looked up ahead of time, and found videos are remembered on the laptop.
+- If the first video is wrong, press **Other video** to cycle through the next results (no extra quota used).
+- Each new song search uses about 100 of the free 10,000 daily quota units, so roughly 100 new songs a day. Replays cost nothing.
+- If a search fails, a message shows Google's reason (for example the API is not enabled, or the website restriction does not match your site).
+
+## Version 1.2
+- Karaoke-only video search (vocal versions and duplicates filtered out); "Other video" cycles the karaoke results.
+- Queued songs auto-start reliably; songs that cannot load are skipped.
+- Pause and Skip buttons inside the karaoke screen; the score appears there too, then the next song starts in full screen.
+- Rounded karaoke screen, bigger Now Playing / Next Song labels at the top left, Get ready after Now Playing.
+- Guests are asked for their name, get a Lyrics tab (big text, high contrast), and a "Sing next" option when reserving.
+- Phones as host: landscape is requested automatically, and the karaoke screen rotates itself if the phone stays upright.
+- A What's New popup opens once per version; the button at the bottom left shows it again.
