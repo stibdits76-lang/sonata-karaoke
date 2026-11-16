@@ -1,14 +1,5 @@
 # SONATA – karaoke with phone reservations (Supabase edition)
 
-## Setup (about 10 minutes)
-1. Create a free project at supabase.com.
-2. Open **SQL Editor**, paste `schema.sql`, click **Run**.
-   If `pg_cron` errors, enable it under **Database > Extensions**, then run again.
-3. Open **Project Settings > API**. Copy the **Project URL** and the **anon public** key.
-4. In `index.html`, replace only the quoted values `YOUR_SUPABASE_URL` and `YOUR_SUPABASE_ANON_KEY` near the top of the script. Leave the other lines as they are.
-5. Deploy `index.html` as a static site: drag the folder into Netlify Drop, or use Cloudflare Pages or GitHub Pages.
-6. Open the site on the laptop, choose **Host a party**, and have phones scan the QR code.
-
 ## How it works
 - **Solo:** pick a song and sing. Favorites, Recent and Top lists are available.
 - **Group:** the laptop is the stage. Phones join with a 4-letter code or QR, reserve songs while someone sings, and send reactions.
@@ -84,3 +75,6 @@ With your key set, pressing Play on a song with no video makes the host look one
 - Guests are asked for their name, get a Lyrics tab (big text, high contrast), and a "Sing next" option when reserving.
 - Phones as host: landscape is requested automatically, and the karaoke screen rotates itself if the phone stays upright.
 - A What's New popup opens once per version; the button at the bottom left shows it again.
+
+## Is the website running the latest version?
+Open the site: the header badge and the start screen should say **v1.2.1**, and a **What's New** popup opens on first load. In `index.html`, searching for `APP_BUILD='1.2.1-b2'` should find a match. If the site is older, a "A newer version is available" button appears at the top once the new file is online. Always upload `index.html` and `sw.js` together.

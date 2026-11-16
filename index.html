@@ -165,7 +165,7 @@ header input{flex:1;min-width:110px;max-width:200px;margin-left:auto;padding:8px
 <script>
 const SUPABASE_URL='https://svofzorymcgtvjbxamqh.supabase.co',SUPABASE_KEY='sb_publishable_GX4Rmb51_0paNAwg7HztnQ_F2rEV_Mb'; /* edit only these two quoted values */
 const YOUTUBE_API_KEY='AIzaSyCnHkPgbP4_tJkKv3SiKcd92wvSIqlnh1M'; /* optional */
-const IDLE_LIMIT=3600000,SCORE_MS=8000,APP_VERSION='1.2.1',APP_BUILD='1.2.1-b1';
+const IDLE_LIMIT=3600000,SCORE_MS=8000,APP_VERSION='1.2.1',APP_BUILD='1.2.1-b2';
 const RAW=`N|Die With A Smile|Lady Gaga & Bruno Mars|251
 N|APT.|ROSÉ & Bruno Mars|170
 N|Espresso|Sabrina Carpenter|175
@@ -756,19 +756,24 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape'){$('qov').hidden=tru
 const VL={},VIDX={}; /* candidate karaoke videos per song (memory only) and which one is in use */
 const KARA=/karaoke|instrumental|minus[\s-]?one|backing track|videoke|sing[\s-]?along/i,NOTKARA=/\b(?:with|w\/)\s+(?:lead\s+|guide\s+)?(?:vocals?|voice)\b|\bofficial (?:music )?video\b|\bcover\b/i;
 const dec=t=>String(t).replace(/&amp;/g,'&').replace(/&#39;/g,"'").replace(/&quot;/g,'"');
+async function ytSearch(q,song){ /* returns karaoke-only candidates, or null when the search itself failed */
+  const a=await(await jfetch('https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&videoEmbeddable=true&videoSyndicated=true&maxResults=25&q='+encodeURIComponent(q)+'&key='+YOUTUBE_API_KEY)).json();
+  if(a.error){toast('YouTube search failed: '+(a.error.message||'check your API key and its restrictions'));return null}
+  const seen=new Set(),tt=song.title.toLowerCase();
+  return (a.items||[]).filter(i=>i.id&&i.id.videoId&&i.snippet&&KARA.test(dec(i.snippet.title))&&!NOTKARA.test(dec(i.snippet.title)))
+    .filter(i=>{const k=dec(i.snippet.title).toLowerCase().replace(/[^a-z0-9]+/g,'');return seen.has(k)?false:seen.add(k)})
+    .map(i=>({id:i.id.videoId,title:dec(i.snippet.title)}))
+    .sort((x,y)=>(y.title.toLowerCase().includes(tt)-x.title.toLowerCase().includes(tt)))
+}
 async function findVideo(s,force){ /* needs your own YouTube Data API key (see README) */
   if(!s||YOUTUBE_API_KEY.includes('YOUR_'))return;
   if(!force&&(VID[s.id]||YF.has(s.id)))return;
   YF.add(s.id);
   try{
     if(!VL[s.id]){
-      const a=await(await jfetch('https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&videoEmbeddable=true&videoSyndicated=true&maxResults=25&q='+encodeURIComponent(s.title+' '+first(s.artist)+' karaoke')+'&key='+YOUTUBE_API_KEY)).json();
-      if(a.error){toast('YouTube search failed: '+(a.error.message||'check your API key and its restrictions'));return}
-      const seen=new Set(),tt=s.title.toLowerCase();
-      VL[s.id]=(a.items||[]).filter(i=>i.id&&i.id.videoId&&i.snippet&&KARA.test(dec(i.snippet.title))&&!NOTKARA.test(dec(i.snippet.title)))
-        .filter(i=>{const k=dec(i.snippet.title).toLowerCase().replace(/[^a-z0-9]+/g,'');return seen.has(k)?false:seen.add(k)})
-        .map(i=>({id:i.id.videoId,title:dec(i.snippet.title)}))
-        .sort((x,y)=>(y.title.toLowerCase().includes(tt)-x.title.toLowerCase().includes(tt)));
+      let list=await ytSearch(s.title+' '+first(s.artist)+' karaoke',s);if(list===null)return;
+      if(!list.length)list=(await ytSearch(s.title+' karaoke version instrumental',s))||[]; /* new or rare songs: try once more without the artist name */
+      VL[s.id]=list;
     }
     const list=VL[s.id];
     if(!list.length){toast('No karaoke-only video found for this song. Paste a link with the pencil button.');return}
@@ -809,7 +814,7 @@ $('fsBtn').onclick=()=>{goFS();$('fsBtn').hidden=true};
 $('sndBtn').onclick=()=>{try{ytp.unMute();ytp.setVolume(100)}catch(e){}$('sndBtn').hidden=true};
 /* ---- guests: name first, lyrics controls ---- */
 let pendingJoin='';
-$('nmGo').onclick=()=>{const v=$('nmIn').value.trim();if(!v)return toast('Please enter your name first');ls.set('sonata-name',v);$('nm').hidden=true;begin('guest',pendingJoin,'group')};
+$('nmGo').onclick=async()=>{const v=$('nmIn').value.trim();if(!v)return toast('Please enter your name first');ls.set('sonata-name',v);const r=await sb.from('sessions').select().eq('code',pendingJoin).maybeSingle();if(!r.data)return toast('No active party with that code');if(r.data.mode!=='group')return toast('That is a solo session');$('nm').hidden=true;begin('guest',pendingJoin,'group')};
 $('nmIn').addEventListener('keydown',e=>{if(e.key==='Enter')$('nmGo').click()});
 $('nmX').onclick=()=>$('nm').hidden=true;
 function applyGL(){const b=$('glyr');if(b){b.style.fontSize=ls.get('sonata-lfs',28)+'px';b.classList.toggle('hc',!!ls.get('sonata-lhc',false))}}
@@ -842,7 +847,7 @@ $('bWN').onclick=showWN;$('wnX').onclick=()=>{$('wn').hidden=true;ls.set('sonata
   if(SUPABASE_URL.includes('YOUR_')||!window.supabase){$('sn').textContent='Setup needed: add your Supabase URL and anon key in index.html (see README).';['bSolo','bGroup','bJoin'].forEach(i=>$(i).disabled=true);return}
   sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
   sb.rpc('cleanup_idle').then(()=>{});updateSongs(false);
-  const room=new URLSearchParams(location.search).get('room');if(room)$('jc').value=room.toUpperCase();
+  const room=new URLSearchParams(location.search).get('room');if(room){$('jc').value=room.toUpperCase();pendingJoin=room.toUpperCase();$('nmIn').value=ls.get('sonata-name','')||'';$('nm').hidden=false}
   const saved=ls.get('sonata-sess',null);
   if(saved&&!room){const r=await sb.from('sessions').select().eq('code',saved.code).maybeSingle();if(r.data)begin(saved.role,saved.code,r.data.mode);else if(r.error&&saved.mode)begin(saved.role,saved.code,saved.mode);else ls.set('sonata-sess',null)}
 })();
