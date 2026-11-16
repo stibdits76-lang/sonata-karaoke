@@ -67,7 +67,7 @@ With your key set, pressing Play on a song with no video makes the host look one
 - Each new song search uses about 100 of the free 10,000 daily quota units, so roughly 100 new songs a day. Replays cost nothing.
 - If a search fails, a message shows Google's reason (for example the API is not enabled, or the website restriction does not match your site).
 
-## Version 1.2.1
+## Version 1.2.2 (includes 1.2 and 1.2.1)
 - Karaoke-only video search (vocal versions and duplicates filtered out); "Other video" cycles the karaoke results.
 - Queued songs auto-start reliably; songs that cannot load are skipped.
 - Pause and Skip buttons inside the karaoke screen; the score appears there too, then the next song starts in full screen.
@@ -77,4 +77,5 @@ With your key set, pressing Play on a song with no video makes the host look one
 - A What's New popup opens once per version; the button at the bottom left shows it again.
 
 ## Is the website running the latest version?
-Open the site: the header badge and the start screen should say **v1.2.1**, and a **What's New** popup opens on first load. In `index.html`, searching for `APP_BUILD='1.2.1-b2'` should find a match. If the site is older, a "A newer version is available" button appears at the top once the new file is online. Always upload `index.html` and `sw.js` together.
+Open the site: the header badge and the start screen should say **v1.2.2**, and a **What's New** popup opens on first load. In `index.html`, searching for `APP_BUILD='1.2.2-b1'` should find a match. If the site is older, a "A newer version is available" button appears at the top once the new file is online. Always upload `index.html` and `sw.js` together.
+- 1.2.2: guests give their name after pressing Join (or before their first song); song titles stay visible on phones because Sing next moved into the queue list; hosts confirm before exiting (Yes closes the session and removes guests).

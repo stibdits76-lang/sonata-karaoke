@@ -121,8 +121,11 @@ header input{flex:1;min-width:110px;max-width:200px;margin-left:auto;padding:8px
 .glyr{position:relative;background:#02121c;border-radius:16px;padding:8vh 12px;text-align:center;font-weight:600;line-height:1.35;max-height:62vh;overflow-y:auto;font-size:28px}
 .glyr.hc{background:#000}.glyr.hc .ln{color:#9fb7c6}.glyr.hc .ln.done{color:#fff}.glyr.hc .ln.on{background:none;color:#ffe14d;-webkit-text-fill-color:#ffe14d;font-weight:800}
 .nx{border:1px solid var(--sea);background:transparent;color:var(--sea);border-radius:10px;padding:6px 8px;font-size:12px;cursor:pointer;white-space:nowrap}
-#nm,#wn{position:fixed;inset:0;z-index:40;background:rgba(0,20,40,.6);display:flex;align-items:center;justify-content:center;padding:16px}
+#nm,#wn,#xm{position:fixed;inset:0;z-index:40;background:rgba(0,20,40,.6);display:flex;align-items:center;justify-content:center;padding:16px}
 #wn ul{padding-left:20px;margin:8px 0}#wn li{margin:6px 0}
+#queue .meta b,#queue .meta span{white-space:normal}
+#queue .item{align-items:flex-start}
+@media(max-width:600px){.item{gap:6px}.sid{min-width:44px;font-size:14px}.add{padding:8px 10px}}
 #bWN{position:fixed;bottom:12px;left:12px;z-index:5;box-shadow:0 2px 10px rgba(0,0,0,.15)}
 </style></head><body>
 <div class="waves" aria-hidden="true"><svg viewBox="0 0 1200 120" preserveAspectRatio="none"><path fill="var(--w1)" d="M0 60Q150 20 300 60T600 60T900 60T1200 60V120H0Z"/></svg><svg viewBox="0 0 1200 120" preserveAspectRatio="none"><path fill="var(--w2)" d="M0 70Q150 100 300 70T600 70T900 70T1200 70V120H0Z"/></svg></div>
@@ -132,11 +135,11 @@ header input{flex:1;min-width:110px;max-width:200px;margin-left:auto;padding:8px
 <button class="big" id="bSolo">🎤 Sing solo<small>Just you. Pick a song and go.</small></button>
 <button class="big alt" id="bGroup">📺 Host a party<small>Laptop is the stage. Phones reserve songs.</small></button>
 <div class="join"><input id="jc" maxlength="4" placeholder="CODE"><button id="bJoin">Join party</button></div>
-<p class="note" id="sn">Sessions clear automatically after 1 hour of no activity.</p><p class="note"><a href="#" id="bReset">Trouble loading? Reset app cache</a> · Version 1.2.1</p>
+<p class="note" id="sn">Sessions clear automatically after 1 hour of no activity.</p><p class="note"><a href="#" id="bReset">Trouble loading? Reset app cache</a> · Version 1.2.2</p>
 </div>
 
 <div id="app" hidden>
-<header><h1 class="logo">SONATA</h1><span class="pill" id="pm"></span><span class="pill" id="pv">v1.2.1</span><span class="pill" id="pc"></span><span class="pill" id="net"></span>
+<header><h1 class="logo">SONATA</h1><span class="pill" id="pm"></span><span class="pill" id="pv">v1.2.2</span><span class="pill" id="pc"></span><span class="pill" id="net"></span>
 <button class="sm" id="bQR" hidden>📱 Share QR</button><button class="sm" id="bNew" hidden>🧹 New session</button><button class="sm" id="bExit">Exit</button>
 <input id="name" placeholder="Your name" maxlength="20"></header>
 <section class="stage" id="stage"></section>
@@ -149,8 +152,9 @@ header input{flex:1;min-width:110px;max-width:200px;margin-left:auto;padding:8px
 <div class="panel" id="lp" hidden><h3 style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">Lyrics <button class="sm" id="lfm" aria-label="Smaller text">A−</button><button class="sm" id="lfp" aria-label="Larger text">A+</button><button class="sm" id="lhc">Contrast</button></h3><div id="glt" class="note" style="margin:0 0 8px"></div><div id="glyr" class="glyr"></div></div>
 </div></div>
 <div id="nm" hidden><div class="edbox"><h3>Welcome! What is your name?</h3><p class="note">Your name shows next to the songs you reserve.</p><input id="nmIn" maxlength="20" placeholder="Your name" autocomplete="nickname"><div class="row"><button class="add" id="nmGo">Join party</button><button class="sm" id="nmX">Cancel</button></div></div></div>
+<div id="xm" hidden><div class="edbox"><h3>Exit the session?</h3><p id="xmt" class="note"></p><div class="row"><button class="add" id="xmYes">Yes, close session</button><button class="sm" id="xmNo">No, keep going</button></div></div></div>
 <div id="wn" hidden><div class="edbox"><h3>What's New</h3><b id="wnv"></b><ul id="wnl"></ul><div class="row"><button class="add" id="wnX">Got it</button></div></div></div>
-<button class="sm" id="bWN">✨ What's New · Version 1.2.1</button>
+<button class="sm" id="bWN">✨ What's New · Version 1.2.2</button>
 <button class="sm" id="bUpd" hidden>🔄 A newer version is available. Tap to update</button>
 <div id="qov" hidden><h2>Scan to join the party</h2><div id="qbig"></div><b id="qcode"></b><p>Tap anywhere to close</p></div>
 <div id="ed" hidden><div class="edbox"><h3 id="edT"></h3><textarea id="edL" placeholder="Paste lyrics you are allowed to use. Or timed lines: [01:23.50] words"></textarea><input type="file" id="edF" accept=".lrc,.txt"><input id="edV" placeholder="YouTube karaoke link (optional)"><input id="edA" placeholder="Minus-one/instrumental audio FILE link (.mp3) — NOT YouTube"><div class="row"><button class="sm" id="edTest">🔊 Test this audio</button></div><small id="edAw" class="warn"></small><input type="file" id="edAF" accept="audio/*"><small id="edAn" class="note"></small><div id="edMatches"></div><p class="note">Saved on this laptop only. Plain lyrics scroll evenly across the song. Lines starting with [mm:ss.xx] highlight in time.</p>
@@ -165,7 +169,7 @@ header input{flex:1;min-width:110px;max-width:200px;margin-left:auto;padding:8px
 <script>
 const SUPABASE_URL='https://svofzorymcgtvjbxamqh.supabase.co',SUPABASE_KEY='sb_publishable_GX4Rmb51_0paNAwg7HztnQ_F2rEV_Mb'; /* edit only these two quoted values */
 const YOUTUBE_API_KEY='AIzaSyCnHkPgbP4_tJkKv3SiKcd92wvSIqlnh1M'; /* optional */
-const IDLE_LIMIT=3600000,SCORE_MS=8000,APP_VERSION='1.2.1',APP_BUILD='1.2.1-b2';
+const IDLE_LIMIT=3600000,SCORE_MS=8000,APP_VERSION='1.2.2',APP_BUILD='1.2.2-b1';
 const RAW=`N|Die With A Smile|Lady Gaga & Bruno Mars|251
 N|APT.|ROSÉ & Bruno Mars|170
 N|Espresso|Sabrina Carpenter|175
@@ -411,7 +415,7 @@ async function load(){
   try{
     const[s,q,p,h]=await Promise.all([sb.from('sessions').select().eq('code',R.code).maybeSingle(),sb.from('queue').select().eq('code',R.code).order('ts'),sb.from('playing').select().eq('code',R.code).maybeSingle(),sb.from('history').select().eq('code',R.code).order('ts',{ascending:false})]);
     if(s.error)throw s.error;
-    if(!s.data){const wasHost=host();await leave('Session ended after 1 hour idle.');return}
+    if(!s.data){const wasHost=host();await leave('This session has ended.');return}
     const hold=host()&&Date.now()<holdUntil;
     S={sess:s.data,queue:(q.data||[]).filter(x=>!goneQ.has(x.id)),now:hold?S.now:p.data,hist:hold?S.hist:(h.data||[])};ls.set('sonata-snap',{code:R.code,q:S.queue,n:S.now,h:S.hist});
     $('net').innerHTML='🟢 Live';render();
@@ -472,15 +476,22 @@ function togglePause(){
   else{paused=false;const d=Date.now()-pausedAt;S.now={...n,started_at:new Date(Date.parse(n.started_at)+d).toISOString()};holdUntil=Date.now()+3000;try{ytp&&ytp.playVideo()}catch(e){}try{ka&&ka.dataset.song&&ka.play()}catch(e){}sb.from('playing').update({started_at:S.now.started_at}).eq('code',R.code).then(()=>{})}
   lastPos=0;const pb=$('pauseBtn');if(pb)pb.textContent=paused?'▶ Resume':'⏸ Pause'
 }
-function pick(id,front){
+function pick(id){
   const s=byId(id);if(!s)return toast('No song with ID '+id);
+  if(R.role==='guest'&&!$('name').value.trim()){askName(()=>pick(id));return}
   const name=$('name').value.trim()||'Guest';ls.set('sonata-name',name);
   if(canPlay())return play(s.id,name);
   const row={code:R.code,song_id:s.id,singer:name};
-  if(front){const f=S.queue[0];row.ts=f?new Date(Date.parse(f.ts)-1000).toISOString():iso()}
   sb.from('queue').insert(row).then(async r=>{
-    if(r.error){if(!host())return toast('No connection. Try again.');S.queue.push({id:'l'+Date.now(),local:true,song_id:s.id,singer:name,ts:row.ts||iso()});dirty=true;offUI();render();return toast('Offline: saved on this laptop')}
-    await touch();toast(front?'Moved to the front: “'+s.title+'”':'Reserved “'+s.title+'” 🎉');load()})
+    if(r.error){if(!host())return toast('No connection. Try again.');S.queue.push({id:'l'+Date.now(),local:true,song_id:s.id,singer:name,ts:iso()});dirty=true;offUI();render();return toast('Offline: saved on this laptop')}
+    await touch();toast('Reserved “'+s.title+'” 🎉');load()})
+}
+async function moveFront(id){ /* queue row option: sing right after the current song */
+  const f=S.queue[0],row=S.queue.find(x=>x.id===id);if(!f||!row||f.id===id)return;
+  const ts=new Date(Date.parse(f.ts)-1000).toISOString();row.ts=ts;S.queue.sort((a,b)=>Date.parse(a.ts)-Date.parse(b.ts));renderQueue();
+  if(String(id).startsWith('l'))return;
+  try{ok(await sb.from('queue').update({ts}).eq('id',id));await touch();toast('Moved to the front of the queue')}catch(e){toast('Could not move it. Try again.')}
+  load()
 }
 /* ---- song list cache ---- */
 function updateStamp(){const t=ls.get('sonata-songs-ts',0);$('su').textContent=(t?'Updated '+new Date(t).toLocaleString([],{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}):'Built-in list')+' · '+SONGS.length+' songs'}
@@ -618,11 +629,11 @@ function renderSongs(){
   else if(cat!=='All')l=SONGS.filter(s=>s.cat===cat);
   if(q)l=l.filter(s=>(s.title+' '+s.artist+' '+s.id).toLowerCase().includes(q));
   const e={Favs:'Tap ☆ on a song to add favorites.',Recent:'Songs sung in this session show up here.',Top:'Nothing sung yet. Be the first!'}[cat]||'No song found 🐟 Try 🌐 Online';
-  $('songs').innerHTML=l.length?l.map(s=>`<div class="item"><button class="st" data-f="${s.id}" aria-label="Favorite">${fav.includes(s.id)?'★':'☆'}</button><span class="sid">${sid(s)}</span><div class="meta"><b>${esc(s.title)}</b><span>${esc(s.artist)} · ${s.cat} · ${fmt(s.sec)}${cn[s.id]?' · sung ×'+cn[s.id]:''}</span></div><button class="add" data-s="${s.id}">${canPlay()?'▶ Play':'＋ Reserve'}</button>${canPlay()?'':`<button class="nx" data-sn="${s.id}" title="Move this song to the front of the queue">Sing next</button>`}</div>`).join(''):`<div class="empty">${e}</div>`
+  $('songs').innerHTML=l.length?l.map(s=>`<div class="item"><button class="st" data-f="${s.id}" aria-label="Favorite">${fav.includes(s.id)?'★':'☆'}</button><span class="sid">${sid(s)}</span><div class="meta"><b>${esc(s.title)}</b><span>${esc(s.artist)} · ${s.cat} · ${fmt(s.sec)}${cn[s.id]?' · sung ×'+cn[s.id]:''}</span></div><button class="add" data-s="${s.id}">${canPlay()?'▶ Play':'＋ Reserve'}</button></div>`).join(''):`<div class="empty">${e}</div>`
 }
 function renderQueue(){
   $('qn').textContent=S.queue.length?'('+S.queue.length+')':'';
-  $('queue').innerHTML=S.queue.length?S.queue.map((r,i)=>{const s=byId(r.song_id);return s?`<div class="item"><span class="sid">${i+1}</span><div class="meta"><b>${esc(s.title)}</b><span>#${sid(s)} · 🎤 ${esc(r.singer)}</span></div><button class="x" data-d="${r.id}" aria-label="Remove">✕</button></div>`:''}).join(''):'<div class="empty">Queue is empty. Reserve a song! 🎶</div>'
+  $('queue').innerHTML=S.queue.length?S.queue.map((r,i)=>{const s=byId(r.song_id);return s?`<div class="item"><span class="sid">${i+1}</span><div class="meta"><b>${esc(s.title)}</b><span>#${sid(s)} · 🎤 ${esc(r.singer)}</span></div>${i>0?`<button class="nx" data-up="${esc(r.id)}" title="Move this song to the front of the queue">Sing next</button>`:''}<button class="x" data-d="${r.id}" aria-label="Cancel this song" title="Cancel this song">✕</button></div>`:''}).join(''):'<div class="empty">Queue is empty. Reserve a song! 🎶</div>'
 }
 function render(){renderStage();renderQueue();renderSongs();tick()}
 function setTab(t){$('app').dataset.tab=t;$('t1').classList.toggle('on',t==='songs');$('t2').classList.toggle('on',t==='queue');$('t3').classList.toggle('on',t==='lyrics')}
@@ -646,7 +657,7 @@ document.addEventListener('click',e=>{
   else if(t.dataset.a==='nextvid')otherVideo();
   else if(t.dataset.a==='pause')togglePause();
   else if(t.dataset.a==='kskip'){S.queue.length?startNext():finish()}
-  else if(t.dataset.sn){if(confirm('Put this song at the front of the queue?\n\nUse this only if you need to sing right after the current song. Everyone who reserved earlier moves down one place.'))pick(t.dataset.sn,true)}
+  else if(t.dataset.up){if(confirm('Move this song to the front of the queue?\n\nUse this only if you need to sing right after the current song. Everyone ahead of it moves down one place.'))moveFront(t.dataset.up)}
   else if(t.dataset.a==='lyrearlier')nudge(-.5);
   else if(t.dataset.a==='view'){vw=vw==='auto'?'both':vw==='both'?'lyrics':'auto';lastSig='';renderStage();toast('View: '+{auto:'Video (or lyrics)',both:'Video + lyrics',lyrics:'Lyrics only'}[vw])}
   else if(t.dataset.a==='retry'){const g=S.now&&byId(S.now.song_id);if(g){delete LC[g.id];FAIL.delete(g.id);ls.set('sonata-lyr',LC);lastSig='';renderStage()}}
@@ -660,7 +671,10 @@ $('bDL').onclick=bulkLyrics;
 $('t1').onclick=()=>setTab('songs');$('t2').onclick=()=>setTab('queue');
 $('bUp').onclick=()=>updateSongs(true);
 $('idgo').onclick=()=>{const v=$('idq').value.trim();if(v){pick(v);$('idq').value=''}};
-$('bExit').onclick=()=>leave();$('bNew').onclick=()=>confirm('Clear this session and start a new one?')&&newSession(false);
+$('bExit').onclick=()=>{if(host()){$('xmt').textContent=grp()?'If you exit, the session closes and all guests are removed.':'If you exit, your solo session ends.';$('xm').hidden=false}else leave()};
+$('xmNo').onclick=()=>$('xm').hidden=true;
+$('xmYes').onclick=async()=>{$('xm').hidden=true;const code=R.code;exitFS();const r=await sb.from('sessions').delete().eq('code',code);if(r.error)toast('Could not close it online. It clears by itself after an hour idle.');await leave(r.error?'':'Session closed')};
+window.addEventListener('beforeunload',e=>{if(R&&R.role==='host'&&grp()){e.preventDefault();e.returnValue=''}});$('bNew').onclick=()=>confirm('Clear this session and start a new one?')&&newSession(false);
 async function startNew(mode){try{const c=await createSession(mode);await begin('host',c,mode)}catch(e){toast('Could not reach the server. Check your Supabase setup.')}}
 $('bSolo').onclick=()=>startNew('solo');$('bGroup').onclick=()=>{goFS();startNew('group')};
 $('bJoin').onclick=async()=>{
@@ -668,7 +682,7 @@ $('bJoin').onclick=async()=>{
   const r=await sb.from('sessions').select().eq('code',c).maybeSingle();
   if(!r.data)return toast('No active party with that code');
   if(r.data.mode!=='group')return toast('That is a solo session');
-  pendingJoin=c;$('nmIn').value=ls.get('sonata-name','')||'';$('nm').hidden=false;setTimeout(()=>$('nmIn').focus(),60)
+  pendingJoin=c;pendingAct=null;$('nmGo').textContent='Join party';$('nmIn').value=ls.get('sonata-name','')||'';$('nm').hidden=false;setTimeout(()=>$('nmIn').focus(),60)
 };
 
 /* ---- online lyrics + song search (LRCLIB community database) ---- */
@@ -813,17 +827,23 @@ function exitFS(){const f=document.exitFullscreen||document.webkitExitFullscreen
 $('fsBtn').onclick=()=>{goFS();$('fsBtn').hidden=true};
 $('sndBtn').onclick=()=>{try{ytp.unMute();ytp.setVolume(100)}catch(e){}$('sndBtn').hidden=true};
 /* ---- guests: name first, lyrics controls ---- */
-let pendingJoin='';
-$('nmGo').onclick=async()=>{const v=$('nmIn').value.trim();if(!v)return toast('Please enter your name first');ls.set('sonata-name',v);const r=await sb.from('sessions').select().eq('code',pendingJoin).maybeSingle();if(!r.data)return toast('No active party with that code');if(r.data.mode!=='group')return toast('That is a solo session');$('nm').hidden=true;begin('guest',pendingJoin,'group')};
+let pendingJoin='',pendingAct=null;
+function askName(act){pendingAct=act;pendingJoin='';$('nmGo').textContent='Continue';$('nmIn').value=ls.get('sonata-name','')||'';$('nm').hidden=false;setTimeout(()=>$('nmIn').focus(),60)}
+$('nmGo').onclick=async()=>{const v=$('nmIn').value.trim();if(!v)return toast('Please enter your name first');ls.set('sonata-name',v);
+  if(pendingAct){const f=pendingAct;pendingAct=null;$('name').value=v;$('nm').hidden=true;f();return}
+  const r=await sb.from('sessions').select().eq('code',pendingJoin).maybeSingle();if(!r.data)return toast('No active party with that code');if(r.data.mode!=='group')return toast('That is a solo session');$('nm').hidden=true;begin('guest',pendingJoin,'group')};
 $('nmIn').addEventListener('keydown',e=>{if(e.key==='Enter')$('nmGo').click()});
-$('nmX').onclick=()=>$('nm').hidden=true;
+$('nmX').onclick=()=>{pendingAct=null;$('nm').hidden=true};
 function applyGL(){const b=$('glyr');if(b){b.style.fontSize=ls.get('sonata-lfs',28)+'px';b.classList.toggle('hc',!!ls.get('sonata-lhc',false))}}
 $('lfp').onclick=()=>{ls.set('sonata-lfs',Math.min(64,ls.get('sonata-lfs',28)+4));applyGL()};
 $('lfm').onclick=()=>{ls.set('sonata-lfs',Math.max(16,ls.get('sonata-lfs',28)-4));applyGL()};
 $('lhc').onclick=()=>{ls.set('sonata-lhc',!ls.get('sonata-lhc',false));applyGL()};
 $('t3').onclick=()=>setTab('lyrics');
 /* ---- What's New ---- */
-const WN_VER='1.2.1',WN_ITEMS=[
+const WN_VER='1.2.2',WN_ITEMS=[
+ 'Guests are asked for their name only after pressing Join (or before their first song), not when the link opens.',
+ 'Song titles are visible again on phones. Sing next moved into the queue list, beside the cancel button.',
+ 'Hosts get a Yes/No prompt before leaving. Yes closes the session and removes the guests; No keeps it going.',
  'Fixed: the next queued song starts by itself after Finish &amp; score, and a failed score save can no longer block it.',
  'Fixed: when a guest starts a song, the host window is already full screen (it enters full screen when the party starts).',
  'Karaoke search is now karaoke-only: vocal versions and duplicate videos are filtered out.',
@@ -847,7 +867,7 @@ $('bWN').onclick=showWN;$('wnX').onclick=()=>{$('wn').hidden=true;ls.set('sonata
   if(SUPABASE_URL.includes('YOUR_')||!window.supabase){$('sn').textContent='Setup needed: add your Supabase URL and anon key in index.html (see README).';['bSolo','bGroup','bJoin'].forEach(i=>$(i).disabled=true);return}
   sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
   sb.rpc('cleanup_idle').then(()=>{});updateSongs(false);
-  const room=new URLSearchParams(location.search).get('room');if(room){$('jc').value=room.toUpperCase();pendingJoin=room.toUpperCase();$('nmIn').value=ls.get('sonata-name','')||'';$('nm').hidden=false}
+  const room=new URLSearchParams(location.search).get('room');if(room)$('jc').value=room.toUpperCase();
   const saved=ls.get('sonata-sess',null);
   if(saved&&!room){const r=await sb.from('sessions').select().eq('code',saved.code).maybeSingle();if(r.data)begin(saved.role,saved.code,r.data.mode);else if(r.error&&saved.mode)begin(saved.role,saved.code,saved.mode);else ls.set('sonata-sess',null)}
 })();
